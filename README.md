@@ -55,7 +55,7 @@ O texto integral que acompanha a WinDivert, com LGPL v3, GPL v3 e GPL v2, está 
 
 Email para contato: [ro0t@hotmail.it](mailto:ro0t@hotmail.it)
 
-Doação de US$ 1: <https://www.paypal.com/donate/?hosted_button_id=QLPEHGUTPCLXJ>
+Doação de US$ 3: <https://www.paypal.com/donate/?hosted_button_id=QLPEHGUTPCLXJ>
 
 ---
 
