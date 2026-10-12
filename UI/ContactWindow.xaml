@@ -1,0 +1,34 @@
+<Window x:Class="NetDivert.UI.ContactWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:NetDivert.UI"
+        Title="{Binding [contact.title], Source={x:Static ui:Loc.Instance}}"
+        Width="640" Height="760" MinHeight="640" WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgBrush}" Foreground="{StaticResource FgBrush}"
+        FontFamily="Segoe UI" FontSize="13.5">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="22">
+            <TextBlock Text="ro0tLimiter" FontSize="26" FontWeight="SemiBold" />
+            <TextBlock Text="© 2026 Andre" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0" />
+
+            <TextBlock Text="{Binding [contact.mail], Source={x:Static ui:Loc.Instance}}" FontWeight="SemiBold" Margin="0,18,0,4" />
+            <TextBlock x:Name="MailLink" Foreground="{StaticResource AccentBrush}" Cursor="Hand" MouseLeftButtonUp="Mail_Click" />
+
+            <TextBlock Text="{Binding [contact.github], Source={x:Static ui:Loc.Instance}}" FontWeight="SemiBold" Margin="0,16,0,4" />
+            <TextBlock x:Name="GitHubLink" Foreground="{StaticResource AccentBrush}" Cursor="Hand" TextDecorations="Underline" MouseLeftButtonUp="GitHub_Click" />
+
+            <TextBlock Text="{Binding [contact.donate], Source={x:Static ui:Loc.Instance}}" FontWeight="SemiBold" Margin="0,18,0,8" />
+            <StackPanel Orientation="Horizontal">
+                <Border Background="White" CornerRadius="8" Padding="6" Cursor="Hand" MouseLeftButtonUp="Donate_Click" ToolTip="PayPal">
+                    <Image x:Name="DonateImage" Width="300" Stretch="Uniform" />
+                </Border>
+                <Border Background="White" CornerRadius="8" Padding="6" Margin="12,0,0,0" Cursor="Hand" MouseLeftButtonUp="Donate_Click" VerticalAlignment="Center">
+                    <Image x:Name="QrImage" Width="132" Height="132" Stretch="Uniform" />
+                </Border>
+            </StackPanel>
+
+            <TextBlock Text="{Binding [contact.license], Source={x:Static ui:Loc.Instance}}" FontWeight="SemiBold" Margin="0,18,0,6" />
+            <TextBlock Text="{Binding [contact.license.body], Source={x:Static ui:Loc.Instance}}" TextWrapping="Wrap" LineHeight="20" Foreground="{StaticResource MutedBrush}" />
+        </StackPanel>
+    </ScrollViewer>
+</Window>

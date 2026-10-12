@@ -1,0 +1,28 @@
+ro0tLimiter
+Copyright (C) 2026 Andre <ro0t@hotmail.it>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published
+by the Free Software Foundation, version 3 of the License.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
+General Public License for more details.
+
+Packet capture is done by WinDivert 2.2.2, written by Basil. WinDivert is
+dual-licensed, at the distributor's choice, under the GNU Lesser General
+Public License version 3 or the GNU General Public License version 2.
+
+ro0tLimiter elects the GNU LGPL version 3. The library and its driver are
+shipped unmodified and loaded as separate files, WinDivert.dll and
+WinDivert64.sys. That is the LGPL's model for an application combined with
+a library. The GNU GPL version 2 would also be a valid choice, and would
+require the whole combined program to be distributed under GPL version 2
+only. LGPL version 3 matches the way this program uses the library.
+
+The complete license text distributed with WinDivert, including the
+LGPL version 3, the GPL version 3 and the GPL version 2, is in
+third_party/WinDivert/LICENSE. The same file is installed next to the
+executable as ThirdParty-LICENSE.txt. The Contact window shows this notice
+while the program is running.

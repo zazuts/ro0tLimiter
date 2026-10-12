@@ -1,0 +1,405 @@
+<Window x:Class="NetDivert.UI.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:NetDivert.UI"
+        Title="{Binding [set.title], Source={x:Static ui:Loc.Instance}}"
+        Width="860" Height="720" MinWidth="720" MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgBrush}" Foreground="{StaticResource FgBrush}"
+        FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="#22262E" />
+            <Setter Property="BorderBrush" Value="#353B46" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,12" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+        <Style x:Key="Lead" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="22,4,8,0" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="LineHeight" Value="18" />
+        </Style>
+        <Style x:Key="Field" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Margin" Value="0,8,0,0" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+        </Style>
+    </Window.Resources>
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="{Binding [set.cancel], Source={x:Static ui:Loc.Instance}}" Margin="0,0,8,0" MinWidth="110" Click="Cancel_Click" />
+            <Button Content="{Binding [set.save], Source={x:Static ui:Loc.Instance}}" MinWidth="110" IsDefault="True" Click="Save_Click" />
+        </StackPanel>
+        <TabControl>
+            <TabItem Header="{Binding [set.general], Source={x:Static ui:Loc.Instance}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16,12">
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.language.tip" HelpKey="set.language.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.language], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,8" Text="{Binding [set.language.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <ComboBox x:Name="LanguageBox" Width="240" HorizontalAlignment="Left">
+                                        <ComboBoxItem Content="Português (Brasil)" Tag="pt-BR" />
+                                        <ComboBoxItem Content="English (US)" Tag="en-US" />
+                                    </ComboBox>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.autostart.tip" HelpKey="set.autostart.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="AutoStartBox" FontWeight="SemiBold" Content="{Binding [set.autostart], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.autostart.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.minimized.tip" HelpKey="set.minimized.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="MinimizedBox" FontWeight="SemiBold" Content="{Binding [set.minimized], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.minimized.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.topmost.tip" HelpKey="set.topmost.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="TopmostBox" FontWeight="SemiBold" Content="{Binding [set.topmost], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.topmost.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.tips.tip" HelpKey="set.tips.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="TipsBox" FontWeight="SemiBold" Content="{Binding [set.tips], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.tips.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.filters.tip" HelpKey="set.filters.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="FiltersBox" FontWeight="SemiBold" Content="{Binding [set.filters], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.filters.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.signature.tip" HelpKey="set.signature.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="SignatureBox" FontWeight="SemiBold" Content="{Binding [set.signature], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.signature.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.hash.tip" HelpKey="set.hash.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="HashBox" FontWeight="SemiBold" Content="{Binding [set.hash], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.hash.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.resolve.tip" HelpKey="set.resolve.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="ResolveBox" FontWeight="SemiBold" Content="{Binding [set.resolve], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.resolve.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.uac.tip" HelpKey="set.uac.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="UacBox" FontWeight="SemiBold" Content="{Binding [set.uac], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.uac.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="{Binding [set.colors], Source={x:Static ui:Loc.Instance}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16,12">
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.colors.tip" HelpKey="set.colors.help" />
+                                <TextBlock TextWrapping="Wrap" LineHeight="20" Text="{Binding [set.colors.lead], Source={x:Static ui:Loc.Instance}}" />
+                            </DockPanel>
+                        </Border>
+                        <StackPanel x:Name="ColorList" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="{Binding [set.network], Source={x:Static ui:Loc.Instance}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16,12">
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.blockOut.tip" HelpKey="set.blockOut.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="BlockOutBox" FontWeight="SemiBold" Content="{Binding [set.blockOut], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.blockOut.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.blockIn.tip" HelpKey="set.blockIn.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="BlockInBox" FontWeight="SemiBold" Content="{Binding [set.blockIn], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.blockIn.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.loopback.tip" HelpKey="set.loopback.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="LoopbackBox" FontWeight="SemiBold" Content="{Binding [set.loopback], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.loopback.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.six.tip" HelpKey="set.six.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="SixBox" FontWeight="SemiBold" Content="{Binding [set.six], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.six.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.stealth.tip" HelpKey="set.stealth.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="StealthBox" FontWeight="SemiBold" Content="{Binding [set.stealth], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.stealth.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="{Binding [set.blocks], Source={x:Static ui:Loc.Instance}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16,12">
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.telemetry.tip" HelpKey="set.telemetry.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.telemetry], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,8" Text="{Binding [set.telemetry.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="TelOff" GroupName="tel" Margin="0,0,18,0" Content="{Binding [set.off], Source={x:Static ui:Loc.Instance}}" />
+                                        <RadioButton x:Name="TelAllow" GroupName="tel" Margin="0,0,18,0" Content="{Binding [set.allow], Source={x:Static ui:Loc.Instance}}" />
+                                        <RadioButton x:Name="TelBlock" GroupName="tel" Content="{Binding [set.block], Source={x:Static ui:Loc.Instance}}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.updates.tip" HelpKey="set.updates.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.updates], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,8" Text="{Binding [set.updates.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="UpOff" GroupName="upd" Margin="0,0,18,0" Content="{Binding [set.off], Source={x:Static ui:Loc.Instance}}" />
+                                        <RadioButton x:Name="UpAllow" GroupName="upd" Margin="0,0,18,0" Content="{Binding [set.allow], Source={x:Static ui:Loc.Instance}}" />
+                                        <RadioButton x:Name="UpBlock" GroupName="upd" Content="{Binding [set.block], Source={x:Static ui:Loc.Instance}}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.msapps.tip" HelpKey="set.msapps.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.msapps], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,8" Text="{Binding [set.msapps.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="AppOff" GroupName="msa" Margin="0,0,18,0" Content="{Binding [set.off], Source={x:Static ui:Loc.Instance}}" />
+                                        <RadioButton x:Name="AppAllow" GroupName="msa" Margin="0,0,18,0" Content="{Binding [set.allow], Source={x:Static ui:Loc.Instance}}" />
+                                        <RadioButton x:Name="AppBlock" GroupName="msa" Content="{Binding [set.block], Source={x:Static ui:Loc.Instance}}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.ports.tip" HelpKey="set.ports.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.ports], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,0" Text="{Binding [set.ports.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBox x:Name="PortsBox" Style="{StaticResource Field}" Height="64" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.ips.tip" HelpKey="set.ips.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.ips], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,0" Text="{Binding [set.ips.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBox x:Name="IpsBox" Style="{StaticResource Field}" Height="80" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.exes.tip" HelpKey="set.exes.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.exes], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,0" Text="{Binding [set.exes.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBox x:Name="ExesBox" Style="{StaticResource Field}" Height="80" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.firewall.tip" HelpKey="set.firewall.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.firewall], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,10" Text="{Binding [set.firewall.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <Button HorizontalAlignment="Left" Content="{Binding [set.firewall], Source={x:Static ui:Loc.Instance}}" Click="ReplicateFirewall_Click" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="{Binding [set.domains], Source={x:Static ui:Loc.Instance}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16,12">
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.blockDomains.tip" HelpKey="set.blockDomains.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.blockDomains], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,0" Text="{Binding [set.blockDomains.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBox x:Name="BlockDomainsBox" Style="{StaticResource Field}" Height="90" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.allowDomains.tip" HelpKey="set.allowDomains.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.allowDomains], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,0" Text="{Binding [set.allowDomains.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBox x:Name="AllowDomainsBox" Style="{StaticResource Field}" Height="70" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.regex.tip" HelpKey="set.regex.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.regex], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,0" Text="{Binding [set.regex.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBox x:Name="RegexBox" Style="{StaticResource Field}" Height="80" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.urls.tip" HelpKey="set.urls.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.urls], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,0" Text="{Binding [set.urls.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBox x:Name="UrlsBox" Style="{StaticResource Field}" Height="80" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="{Binding [set.logs], Source={x:Static ui:Loc.Instance}}">
+                <DockPanel Margin="16,12">
+                    <StackPanel DockPanel.Dock="Top">
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.logDrop.tip" HelpKey="set.logDrop.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="LogDropBox" FontWeight="SemiBold" Content="{Binding [set.logDrop], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.logDrop.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.logConn.tip" HelpKey="set.logConn.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="LogConnBox" FontWeight="SemiBold" Content="{Binding [set.logConn], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.logConn.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.logDebug.tip" HelpKey="set.logDebug.help" />
+                                <StackPanel>
+                                    <CheckBox x:Name="LogDebugBox" FontWeight="SemiBold" Content="{Binding [set.logDebug], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.logDebug.lead], Source={x:Static ui:Loc.Instance}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Button HorizontalAlignment="Left" Margin="0,0,0,10" Content="{Binding [set.openLogs], Source={x:Static ui:Loc.Instance}}" Click="OpenLogs_Click" />
+                    </StackPanel>
+                    <TextBox x:Name="LogPreview" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="11" />
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="{Binding [set.uninstall], Source={x:Static ui:Loc.Instance}}">
+                <StackPanel Margin="16,12">
+                    <Border Style="{StaticResource Card}">
+                        <DockPanel>
+                            <ui:HelpMark DockPanel.Dock="Right" TipKey="set.keep.tip" HelpKey="set.keep.help" />
+                            <StackPanel>
+                                <RadioButton x:Name="KeepBox" GroupName="un" FontWeight="SemiBold" Content="{Binding [set.keep], Source={x:Static ui:Loc.Instance}}" />
+                                <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.keep.lead], Source={x:Static ui:Loc.Instance}}" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <DockPanel>
+                            <ui:HelpMark DockPanel.Dock="Right" TipKey="set.wipe.tip" HelpKey="set.wipe.help" />
+                            <StackPanel>
+                                <RadioButton x:Name="WipeBox" GroupName="un" FontWeight="SemiBold" Content="{Binding [set.wipe], Source={x:Static ui:Loc.Instance}}" />
+                                <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.wipe.lead], Source={x:Static ui:Loc.Instance}}" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

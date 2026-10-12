@@ -1,0 +1,369 @@
+<Window x:Class="NetDivert.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:NetDivert.UI"
+        Title="{Binding WindowTitle}"
+        Width="1280" Height="800" MinWidth="900" MinHeight="500"
+        Background="{StaticResource BgBrush}" Foreground="{StaticResource FgBrush}"
+        FontFamily="Segoe UI" FontSize="12.5"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <Style x:Key="EditBox" TargetType="TextBox" BasedOn="{StaticResource LimitBox}">
+            <EventSetter Event="KeyDown" Handler="EditBox_KeyDown" />
+            <EventSetter Event="GotKeyboardFocus" Handler="EditBox_GotFocus" />
+        </Style>
+
+        <Style x:Key="CategoryTab" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="b" Padding="12,8" Background="Transparent" BorderThickness="0,0,0,2" BorderBrush="Transparent">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="b" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="{StaticResource FgBrush}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource FgBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <ContextMenu x:Key="ServiceMenu">
+            <MenuItem Header="{Binding ServiceStatusText}" IsEnabled="False">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="14" Foreground="#8A93A3" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem Header="{Binding [svc.install], Source={x:Static ui:Loc.Instance}}" Command="{Binding InstallServiceCommand}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE898;" FontSize="14" Foreground="#3DDC84" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{Binding [svc.remove], Source={x:Static ui:Loc.Instance}}" Command="{Binding UninstallServiceCommand}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" FontSize="14" Foreground="#FF5C5C" />
+                </MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
+
+        <ContextMenu x:Key="AppMenu">
+            <MenuItem Header="{Binding [menu.clear], Source={x:Static ui:Loc.Instance}}"
+                      ToolTip="{Binding [menu.clear.tip], Source={x:Static ui:Loc.Instance}}"
+                      Command="{Binding PlacementTarget.DataContext.ClearRuleCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" FontSize="14" Foreground="#FF5C5C" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem Header="{Binding [menu.folder], Source={x:Static ui:Loc.Instance}}"
+                      ToolTip="{Binding [menu.folder.tip], Source={x:Static ui:Loc.Instance}}"
+                      Command="{Binding PlacementTarget.DataContext.OpenFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="14" Foreground="#E3E6EB" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{Binding [menu.copy], Source={x:Static ui:Loc.Instance}}"
+                      ToolTip="{Binding [menu.copy.tip], Source={x:Static ui:Loc.Instance}}"
+                      Command="{Binding PlacementTarget.DataContext.CopyPathCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;" FontSize="14" Foreground="#8A93A3" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{Binding [menu.adapter], Source={x:Static ui:Loc.Instance}}"
+                      ToolTip="{Binding [menu.adapter.tip], Source={x:Static ui:Loc.Instance}}"
+                      Command="{Binding PlacementTarget.DataContext.AdapterRulesCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE839;" FontSize="14" Foreground="#3D8BFD" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{Binding [menu.firewall], Source={x:Static ui:Loc.Instance}}"
+                      ToolTip="{Binding [menu.firewall.tip], Source={x:Static ui:Loc.Instance}}"
+                      Command="{Binding PlacementTarget.DataContext.FirewallCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE83D;" FontSize="14" Foreground="#FF9F43" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{Binding PlacementTarget.SelectedItem.PinMenuText, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      ToolTip="{Binding [menu.pin.tip], Source={x:Static ui:Loc.Instance}}"
+                      Command="{Binding PlacementTarget.DataContext.TogglePinCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE718;" FontSize="14" Foreground="#FF9F43" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{Binding [menu.allowOut], Source={x:Static ui:Loc.Instance}}"
+                      ToolTip="{Binding [menu.allow.tip], Source={x:Static ui:Loc.Instance}}"
+                      Command="{Binding PlacementTarget.DataContext.AllowOutCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE898;" FontSize="14" Foreground="#3DDC84" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{Binding [menu.allowIn], Source={x:Static ui:Loc.Instance}}"
+                      ToolTip="{Binding [menu.allow.tip], Source={x:Static ui:Loc.Instance}}"
+                      Command="{Binding PlacementTarget.DataContext.AllowInCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE896;" FontSize="14" Foreground="#3DDC84" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem Header="{Binding PlacementTarget.SelectedItem.FavoriteMenuText, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      ToolTip="{Binding [menu.fav.tip], Source={x:Static ui:Loc.Instance}}"
+                      Command="{Binding PlacementTarget.DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE734;" FontSize="14" Foreground="#F5C451" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{Binding PlacementTarget.SelectedItem.HiddenMenuText, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      ToolTip="{Binding [menu.hide.tip], Source={x:Static ui:Loc.Instance}}"
+                      Command="{Binding PlacementTarget.DataContext.ToggleHiddenCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7B3;" FontSize="14" Foreground="#8A93A3" />
+                </MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="5" />
+            <RowDefinition Height="250" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <Border Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,8">
+            <DockPanel LastChildFill="False">
+                <Button DockPanel.Dock="Left" Content="{Binding StartStopText}" Command="{Binding StartStopCommand}" MinWidth="100" />
+
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding TotalDown}" Foreground="{StaticResource DownBrush}" FontSize="16" FontWeight="SemiBold" MinWidth="120" />
+                    <TextBlock Text="{Binding TotalUp}" Foreground="{StaticResource UpBrush}" FontSize="16" FontWeight="SemiBold" MinWidth="120" Margin="10,0,0,0" />
+                </StackPanel>
+
+                <Border DockPanel.Dock="Left" Margin="18,0,0,0" Padding="10,3" CornerRadius="4" BorderThickness="1" BorderBrush="{StaticResource BorderBrush}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding [global], Source={x:Static ui:Loc.Instance}}" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <CheckBox IsChecked="{Binding GlobalDownEnabled}" Content="↓" />
+                        <TextBox Style="{StaticResource EditBox}" Margin="6,0,4,0" Text="{Binding GlobalDownValue, StringFormat={}{0:0.##}, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Text="{Binding LimitUnitLabel}" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" />
+                        <CheckBox IsChecked="{Binding GlobalUpEnabled}" Content="↑" Margin="16,0,0,0" />
+                        <TextBox Style="{StaticResource EditBox}" Margin="6,0,4,0" Text="{Binding GlobalUpValue, StringFormat={}{0:0.##}, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Text="{Binding LimitUnitLabel}" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding [unit], Source={x:Static ui:Loc.Instance}}" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <ComboBox ItemsSource="{Binding UnitOptions}" SelectedIndex="{Binding UnitIndex}" Width="100"
+                              ToolTip="Unidade das velocidades e dos campos de limite (Automático: velocidades se ajustam, limites em KB/s)" />
+                </StackPanel>
+
+                <Button DockPanel.Dock="Right" Content="{Binding [service], Source={x:Static ui:Loc.Instance}}" Margin="8,0,0,0" Click="ServiceButton_Click" />
+                <Button DockPanel.Dock="Right" Content="{Binding [contact], Source={x:Static ui:Loc.Instance}}" Margin="8,0,0,0" Command="{Binding ContactCommand}" />
+                <Button DockPanel.Dock="Right" Content="{Binding [settings], Source={x:Static ui:Loc.Instance}}" Margin="8,0,0,0" Command="{Binding SettingsCommand}" />
+            </DockPanel>
+        </Border>
+
+        <!-- Categories -->
+        <Border Grid.Row="1" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="6,0">
+            <DockPanel LastChildFill="False">
+                <Button DockPanel.Dock="Right" Content="{Binding ClearInactiveText}" Command="{Binding ClearInactiveCommand}" Margin="8,6,4,6"
+                        ToolTip="Tira da lista os programas que já usaram a rede e agora estão parados. Eles voltam sozinhos quando enviarem ou receberem dados de novo." />
+                <Grid DockPanel.Dock="Right" Width="230" Margin="8,6">
+                    <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="{Binding [search], Source={x:Static ui:Loc.Instance}}" Foreground="{StaticResource MutedBrush}" Margin="7,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <RadioButton GroupName="AppCategory" Style="{StaticResource CategoryTab}" Content="{Binding TabAllText}" IsChecked="{Binding TabIsAll}"
+                                 ToolTip="Todos os programas monitorados, exceto os ocultos e os que você limpou" />
+                    <RadioButton GroupName="AppCategory" Style="{StaticResource CategoryTab}" Content="{Binding TabOfflineText}" IsChecked="{Binding TabIsOffline}"
+                                 ToolTip="Programas em execução que ainda não fizeram nenhuma conexão" />
+                    <RadioButton GroupName="AppCategory" Style="{StaticResource CategoryTab}" Content="{Binding TabInactiveText}" IsChecked="{Binding TabIsInactive}"
+                                 ToolTip="Já usaram a rede, mas não estão baixando nem enviando agora" />
+                    <RadioButton GroupName="AppCategory" Style="{StaticResource CategoryTab}" Content="{Binding TabFavoritesText}" IsChecked="{Binding TabIsFavorites}"
+                                 ToolTip="Programas que você marcou com o botão direito, em Adicionar à minha lista" />
+                    <RadioButton GroupName="AppCategory" Style="{StaticResource CategoryTab}" Content="{Binding TabHiddenText}" IsChecked="{Binding TabIsHidden}"
+                                 ToolTip="Programas que você ocultou. Eles continuam limitados ou bloqueados." />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Applications -->
+        <DataGrid Grid.Row="2" x:Name="AppsGrid" ItemsSource="{Binding Apps}" SelectedItem="{Binding SelectedApp}"
+                  ContextMenu="{StaticResource AppMenu}">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding BlockOut}" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource BlockBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding BlockIn}" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource BlockBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding HasHighlight}" Value="True">
+                            <Setter Property="Background" Value="{Binding HighlightBrush}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTemplateColumn x:Name="AppColumn" Header="Aplicativo" Width="2*" MinWidth="200" SortMemberPath="Name" CanUserSort="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" ToolTip="{Binding Tip}">
+                                <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,8,0" />
+                                <TextBlock Text="{Binding Name}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn x:Name="PidColumn" Header="PID" Binding="{Binding PidsText}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn x:Name="AdapterColumn" Header="Adaptador" Binding="{Binding AdaptersText}" Width="130" />
+                <DataGridTextColumn x:Name="DownColumn" Header="Download" Binding="{Binding DownRateText}" SortMemberPath="DownRate" Width="95" ElementStyle="{StaticResource DownCell}" />
+                <DataGridTextColumn x:Name="UpColumn" Header="Upload" Binding="{Binding UpRateText}" SortMemberPath="UpRate" Width="95" ElementStyle="{StaticResource UpCell}" />
+                <DataGridTextColumn x:Name="TotalInColumn" Header="Total ↓" Binding="{Binding TotalInText}" SortMemberPath="TotalIn" Width="85" ElementStyle="{StaticResource RightCell}" />
+                <DataGridTextColumn x:Name="TotalOutColumn" Header="Total ↑" Binding="{Binding TotalOutText}" SortMemberPath="TotalOut" Width="85" ElementStyle="{StaticResource RightCell}" />
+                <DataGridTextColumn x:Name="ConnColumn" Header="Conexões" Binding="{Binding ConnectionCount}" Width="75" ElementStyle="{StaticResource RightCell}" />
+                <DataGridTextColumn x:Name="DiscardColumn" Header="Descartado" Binding="{Binding DiscardedText}" SortMemberPath="Discarded" Width="85">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource RightCell}">
+                            <Setter Property="Foreground" Value="{StaticResource BlockBrush}" />
+                            <Setter Property="ToolTip" Value="Bytes descartados pelo limitador ou bloqueados pelo firewall" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTemplateColumn x:Name="LimitDownColumn" Header="Limite ↓" Width="140" SortMemberPath="LimitDownEnabled">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox IsChecked="{Binding LimitDownEnabled, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Style="{StaticResource EditBox}" Margin="6,0,0,0" Text="{Binding LimitDownValue, StringFormat={}{0:0.##}, UpdateSourceTrigger=LostFocus}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn x:Name="LimitUpColumn" Header="Limite ↑" Width="140" SortMemberPath="LimitUpEnabled">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox IsChecked="{Binding LimitUpEnabled, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Style="{StaticResource EditBox}" Margin="6,0,0,0" Text="{Binding LimitUpValue, StringFormat={}{0:0.##}, UpdateSourceTrigger=LostFocus}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn x:Name="BlockInColumn" Header="Bloquear ↓" Width="80" SortMemberPath="BlockIn">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding BlockIn, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" ToolTip="Bloquear tráfego de entrada" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn x:Name="BlockOutColumn" Header="Bloquear ↑" Width="80" SortMemberPath="BlockOut">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding BlockOut, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" ToolTip="Bloquear tráfego de saída" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <GridSplitter Grid.Row="3" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}" />
+
+        <!-- Details -->
+        <TabControl Grid.Row="4">
+            <TabItem x:Name="ConnTab" Header="Conexões do aplicativo selecionado">
+                <DataGrid ItemsSource="{Binding Connections}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Protocolo" Binding="{Binding Protocol}" Width="70" />
+                        <DataGridTextColumn Header="Local" Binding="{Binding Local}" Width="200" />
+                        <DataGridTextColumn Header="Remoto" Binding="{Binding Remote}" Width="220" />
+                        <DataGridTextColumn Header="Host remoto" Binding="{Binding RemoteHost}" Width="*" />
+                        <DataGridTextColumn Header="Estado" Binding="{Binding State}" Width="80" />
+                        <DataGridTextColumn Header="Início" Binding="{Binding Started}" Width="70" />
+                        <DataGridTextColumn Header="Download" Binding="{Binding DownRateText}" SortMemberPath="DownRate" Width="95" ElementStyle="{StaticResource DownCell}" />
+                        <DataGridTextColumn Header="Upload" Binding="{Binding UpRateText}" SortMemberPath="UpRate" Width="95" ElementStyle="{StaticResource UpCell}" />
+                        <DataGridTextColumn Header="Total ↓" Binding="{Binding TotalInText}" SortMemberPath="TotalIn" Width="85" ElementStyle="{StaticResource RightCell}" />
+                        <DataGridTextColumn Header="Total ↑" Binding="{Binding TotalOutText}" SortMemberPath="TotalOut" Width="85" ElementStyle="{StaticResource RightCell}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+            <TabItem x:Name="ListenTab" Header="Escutando portas">
+                <DataGrid ItemsSource="{Binding Listeners}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn x:Name="ListenProcessColumn" Header="Processo" Binding="{Binding Process}" Width="180" />
+                        <DataGridTextColumn x:Name="ListenProtoColumn" Header="Protocolo" Binding="{Binding Protocol}" Width="80" />
+                        <DataGridTextColumn x:Name="ListenAddrColumn" Header="Endereço" Binding="{Binding Local}" Width="*" />
+                        <DataGridTextColumn x:Name="ListenPortColumn" Header="Porta" Binding="{Binding Port}" Width="70" />
+                        <DataGridTextColumn Header="PID" Binding="{Binding Pid}" Width="70" />
+                        <DataGridTextColumn x:Name="ListenPathColumn" Header="Caminho" Binding="{Binding Path}" Width="2*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+            <TabItem x:Name="GraphTab" Header="Gráfico de tráfego">
+                <Grid>
+                    <ui:TrafficGraph x:Name="Graph" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10,6">
+                        <TextBlock Text="{Binding GraphTitle}" Foreground="{StaticResource MutedBrush}" Margin="0,0,16,0" />
+                        <TextBlock Text="■ Download" Foreground="{StaticResource DownBrush}" Margin="0,0,10,0" />
+                        <TextBlock Text="■ Upload" Foreground="{StaticResource UpBrush}" />
+                    </StackPanel>
+                    <TextBlock Text="últimos 2 minutos" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10,4" FontSize="10" />
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- Status bar -->
+        <Border Grid.Row="5" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="10,4">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="{Binding ModeText}" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,2" />
+                <TextBlock DockPanel.Dock="Left" Text="{Binding StatusText}" Margin="0,0,24,0" />
+                <TextBlock Text="{Binding StatsText}" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>
