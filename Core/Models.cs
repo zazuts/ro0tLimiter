@@ -66,6 +66,13 @@ namespace NetDivert.Core
         public long LastActivity => Interlocked.Read(ref _lastActivity);
 
         public long BlockedPackets;
+        private int _ruled;
+
+        public bool Ruled => Volatile.Read(ref _ruled) != 0;
+
+        public void MarkRuled() => Volatile.Write(ref _ruled, 1);
+
+        public void SetRuled(bool value) => Volatile.Write(ref _ruled, value ? 1 : 0);
 
         private long _bytesDiscarded;
 

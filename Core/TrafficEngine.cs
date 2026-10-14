@@ -104,6 +104,8 @@ namespace NetDivert.Core
             var rule = app.Rule;
             app.DownPipe.SetRate(rule.DownBytesPerSecond);
             app.UpPipe.SetRate(rule.UpBytesPerSecond);
+            if (rule.IsDefault)
+                app.SetRuled(false);
             foreach (var adapter in rule.Adapters)
             {
                 if (adapter.LimitDownEnabled)
@@ -322,10 +324,25 @@ namespace NetDivert.Core
                 }
                 if (adapterRule != null && (outbound ? adapterRule.BlockOut : adapterRule.BlockIn))
                     reason = "adapter " + adapterName;
+                bool exclusive = false;
+                foreach (var candidate in rule.Adapters)
+                    if (candidate.Exclusive)
+                        exclusive = true;
+                if (reason == null && exclusive)
+                {
+                    bool onTunnel = false;
+                    foreach (var candidate in rule.Adapters)
+                        if (candidate.Exclusive && string.Equals(candidate.AdapterId, adapterId, StringComparison.OrdinalIgnoreCase))
+                            onTunnel = true;
+                    if (!onTunnel)
+                        reason = "tunnel";
+                }
             }
 
             if (reason == null && (outbound ? rule.BlockOut : rule.BlockIn))
                 reason = outbound ? "block-out" : "block-in";
+
+            app.SetRuled(reason != null || !rule.IsDefault);
 
             if (reason != null)
             {
@@ -508,6 +525,7 @@ namespace NetDivert.Core
                 _ports.RefreshFromSystem();
                 AdapterTable.Refresh();
                 PolicyEngine.ReloadIfStale();
+                TrafficLog.Rotate(PolicyEngine.Current.Policy.LogRotate);
 
                 long now = Environment.TickCount64;
                 if (now - lastPrune >= 5000)

@@ -1,15 +1,22 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 namespace NetDivert.Core
 {
     /// <summary>Opt-in text logs. Each line is one record of key=value fields.</summary>
     public static class TrafficLog
     {
-        private static readonly object Gate = new();
         private const long MaxBytes = 16 * 1024 * 1024;
+        private const int MaxQueued = 4000;
+        private static readonly ConcurrentQueue<(string File, string Line)> Queue = new();
+        private static int _queued;
+        private static int _writer;
+        private static long _rotatedAt;
 
         public static void Drop(string reason, bool outbound, string proto, int length,
             string src, string dst, string app, string? exe, string adapter, int pid)
@@ -31,6 +38,73 @@ namespace NetDivert.Core
             if (!PolicyEngine.Current.LogDebug)
                 return;
             Write("debug.log", $"time={Stamp()} level=debug msg={Q(message)}");
+        }
+
+        public static void Rotate(int mode)
+        {
+            if (mode <= 0)
+                return;
+            long now = Environment.TickCount64;
+            if (now - _rotatedAt < 600_000)
+                return;
+            _rotatedAt = now;
+            var maxAge = mode switch
+            {
+                1 => TimeSpan.FromDays(1),
+                2 => TimeSpan.FromDays(7),
+                3 => TimeSpan.FromDays(31),
+                4 => TimeSpan.FromDays(182),
+                _ => TimeSpan.FromDays(365),
+            };
+            var cutoff = DateTime.Now - maxAge;
+            Purge(Brand.LogDir, "*.log", cutoff);
+            Purge(Brand.LogDir, "*.log.1", cutoff);
+            Purge(AppContext.BaseDirectory, "dip-wd-*.log", cutoff);
+        }
+
+        public static (int Deleted, int Busy) DeleteAll()
+        {
+            int deleted = 0, busy = 0;
+            DeleteMatches(Brand.LogDir, "*.log", ref deleted, ref busy);
+            DeleteMatches(Brand.LogDir, "*.log.1", ref deleted, ref busy);
+            DeleteMatches(AppContext.BaseDirectory, "dip-wd-*.log", ref deleted, ref busy);
+            return (deleted, busy);
+        }
+
+        private static void Purge(string dir, string pattern, DateTime cutoff)
+        {
+            if (!Directory.Exists(dir))
+                return;
+            foreach (string file in Directory.EnumerateFiles(dir, pattern))
+            {
+                try
+                {
+                    if (File.GetLastWriteTime(file) < cutoff)
+                        File.Delete(file);
+                }
+                catch
+                {
+                    // A file the tunnel still has open stays until the next pass.
+                }
+            }
+        }
+
+        private static void DeleteMatches(string dir, string pattern, ref int deleted, ref int busy)
+        {
+            if (!Directory.Exists(dir))
+                return;
+            foreach (string file in Directory.EnumerateFiles(dir, pattern))
+            {
+                try
+                {
+                    File.Delete(file);
+                    deleted++;
+                }
+                catch
+                {
+                    busy++;
+                }
+            }
         }
 
         public static string Tail(string fileName, int maxChars = 24_000)
@@ -91,12 +165,34 @@ namespace NetDivert.Core
 
         private static void Write(string fileName, string line)
         {
+            if (Interlocked.Increment(ref _queued) > MaxQueued)
+            {
+                Interlocked.Decrement(ref _queued);
+                return;
+            }
+            Queue.Enqueue((fileName, line));
+            if (Interlocked.CompareExchange(ref _writer, 1, 0) == 0)
+                ThreadPool.UnsafeQueueUserWorkItem(static _ => Drain(), null);
+        }
+
+        private static void Drain()
+        {
             try
             {
-                Directory.CreateDirectory(Brand.LogDir);
-                string path = Path.Combine(Brand.LogDir, fileName);
-                lock (Gate)
+                var batches = new Dictionary<string, StringBuilder>(StringComparer.OrdinalIgnoreCase);
+                while (Queue.TryDequeue(out var item))
                 {
+                    Interlocked.Decrement(ref _queued);
+                    if (!batches.TryGetValue(item.File, out var sb))
+                        batches[item.File] = sb = new StringBuilder();
+                    sb.Append(item.Line).Append('\n');
+                }
+                if (batches.Count == 0)
+                    return;
+                Directory.CreateDirectory(Brand.LogDir);
+                foreach (var kv in batches)
+                {
+                    string path = Path.Combine(Brand.LogDir, kv.Key);
                     var info = new FileInfo(path);
                     if (info.Exists && info.Length > MaxBytes)
                     {
@@ -105,12 +201,18 @@ namespace NetDivert.Core
                             File.Delete(old);
                         File.Move(path, old);
                     }
-                    File.AppendAllText(path, line + Environment.NewLine);
+                    File.AppendAllText(path, kv.Value.ToString());
                 }
             }
             catch
             {
                 // Logging must never affect traffic.
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _writer, 0);
+                if (!Queue.IsEmpty && Interlocked.CompareExchange(ref _writer, 1, 0) == 0)
+                    ThreadPool.UnsafeQueueUserWorkItem(static _ => Drain(), null);
             }
         }
     }

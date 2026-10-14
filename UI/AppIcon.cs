@@ -14,7 +14,7 @@ namespace NetDivert.UI
         [DllImport("user32.dll")]
         private static extern bool DestroyIcon(IntPtr handle);
 
-        public static Icon Create(Color accent, int size = 32)
+        public static Icon Create(Color accent, int size = 32, Color? downColor = null, Color? upColor = null)
         {
             using var bmp = new Bitmap(size, size);
             using (var g = Graphics.FromImage(bmp))
@@ -32,8 +32,8 @@ namespace NetDivert.UI
                 g.FillPath(bg, tile);
 
                 float s = size / 32f;
-                using var down = new SolidBrush(Color.FromArgb(0x7C, 0xF5, 0xB0));
-                using var up = new SolidBrush(Color.FromArgb(0xFF, 0xC0, 0x7A));
+                using var down = new SolidBrush(downColor ?? Color.FromArgb(0x7C, 0xF5, 0xB0));
+                using var up = new SolidBrush(upColor ?? Color.FromArgb(0xFF, 0xC0, 0x7A));
                 g.FillPolygon(down, new[]
                 {
                     new PointF(7 * s, 17 * s), new PointF(15 * s, 17 * s), new PointF(11 * s, 25 * s),

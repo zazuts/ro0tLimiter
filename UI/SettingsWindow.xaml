@@ -5,19 +5,19 @@
         Title="{Binding [set.title], Source={x:Static ui:Loc.Instance}}"
         Width="860" Height="720" MinWidth="720" MinHeight="520"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource BgBrush}" Foreground="{StaticResource FgBrush}"
+        Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
         FontFamily="Segoe UI" FontSize="13">
     <Window.Resources>
         <Style x:Key="Card" TargetType="Border">
-            <Setter Property="Background" Value="#22262E" />
-            <Setter Property="BorderBrush" Value="#353B46" />
+            <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="14,12" />
-            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="4" />
         </Style>
         <Style x:Key="Lead" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="Margin" Value="22,4,8,0" />
             <Setter Property="FontSize" Value="12.5" />
@@ -40,7 +40,7 @@
         <TabControl>
             <TabItem Header="{Binding [set.general], Source={x:Static ui:Loc.Instance}}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="16,12">
+                    <UniformGrid Columns="2" Margin="8">
                         <Border Style="{StaticResource Card}">
                             <DockPanel>
                                 <ui:HelpMark DockPanel.Dock="Right" TipKey="set.language.tip" HelpKey="set.language.help" />
@@ -50,6 +50,19 @@
                                     <ComboBox x:Name="LanguageBox" Width="240" HorizontalAlignment="Left">
                                         <ComboBoxItem Content="Português (Brasil)" Tag="pt-BR" />
                                         <ComboBoxItem Content="English (US)" Tag="en-US" />
+                                    </ComboBox>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.theme.tip" HelpKey="set.theme.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.theme], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,8" Text="{Binding [set.theme.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <ComboBox x:Name="ThemeBox" Width="180" HorizontalAlignment="Left" SelectionChanged="ThemeBox_SelectionChanged">
+                                        <ComboBoxItem Content="Dark" Tag="dark" />
+                                        <ComboBoxItem Content="Light" Tag="light" />
                                     </ComboBox>
                                 </StackPanel>
                             </DockPanel>
@@ -135,7 +148,7 @@
                                 </StackPanel>
                             </DockPanel>
                         </Border>
-                    </StackPanel>
+                    </UniformGrid>
                 </ScrollViewer>
             </TabItem>
 
@@ -155,22 +168,18 @@
 
             <TabItem Header="{Binding [set.network], Source={x:Static ui:Loc.Instance}}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="16,12">
+                    <UniformGrid Columns="2" Margin="8">
                         <Border Style="{StaticResource Card}">
                             <DockPanel>
-                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.blockOut.tip" HelpKey="set.blockOut.help" />
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.netMode.tip" HelpKey="set.netMode.help" />
                                 <StackPanel>
-                                    <CheckBox x:Name="BlockOutBox" FontWeight="SemiBold" Content="{Binding [set.blockOut], Source={x:Static ui:Loc.Instance}}" />
-                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.blockOut.lead], Source={x:Static ui:Loc.Instance}}" />
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-                        <Border Style="{StaticResource Card}">
-                            <DockPanel>
-                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.blockIn.tip" HelpKey="set.blockIn.help" />
-                                <StackPanel>
-                                    <CheckBox x:Name="BlockInBox" FontWeight="SemiBold" Content="{Binding [set.blockIn], Source={x:Static ui:Loc.Instance}}" />
-                                    <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.blockIn.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.netMode], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,8" Text="{Binding [set.netMode.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <ComboBox x:Name="NetModeBox" Width="200" HorizontalAlignment="Left">
+                                        <ComboBoxItem Content="{Binding [set.netAllow], Source={x:Static ui:Loc.Instance}}" Tag="0" />
+                                        <ComboBoxItem Content="{Binding [set.netBlock], Source={x:Static ui:Loc.Instance}}" Tag="1" />
+                                        <ComboBoxItem Content="{Binding [set.netAsk], Source={x:Static ui:Loc.Instance}}" Tag="2" />
+                                    </ComboBox>
                                 </StackPanel>
                             </DockPanel>
                         </Border>
@@ -201,13 +210,14 @@
                                 </StackPanel>
                             </DockPanel>
                         </Border>
-                    </StackPanel>
+                    </UniformGrid>
                 </ScrollViewer>
             </TabItem>
 
             <TabItem Header="{Binding [set.blocks], Source={x:Static ui:Loc.Instance}}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="16,12">
+                    <StackPanel>
+                    <UniformGrid Columns="2" Margin="8">
                         <Border Style="{StaticResource Card}">
                             <DockPanel>
                                 <ui:HelpMark DockPanel.Dock="Right" TipKey="set.telemetry.tip" HelpKey="set.telemetry.help" />
@@ -247,9 +257,28 @@
                                         <RadioButton x:Name="AppAllow" GroupName="msa" Margin="0,0,18,0" Content="{Binding [set.allow], Source={x:Static ui:Loc.Instance}}" />
                                         <RadioButton x:Name="AppBlock" GroupName="msa" Content="{Binding [set.block], Source={x:Static ui:Loc.Instance}}" />
                                     </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                        <CheckBox x:Name="OneDriveBox" Content="{Binding [set.onedrive], Source={x:Static ui:Loc.Instance}}" />
+                                        <ui:HelpMark TipKey="set.onedrive.tip" HelpKey="set.onedrive.help" />
+                                    </StackPanel>
                                 </StackPanel>
                             </DockPanel>
                         </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.firewall.tip" HelpKey="set.firewall.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.firewall], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,10" Text="{Binding [set.firewall.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="{Binding [set.firewall.add], Source={x:Static ui:Loc.Instance}}" Click="ReplicateFirewall_Click" />
+                                        <Button Margin="8,0,0,0" Content="{Binding [set.firewall.remove], Source={x:Static ui:Loc.Instance}}" Click="RemoveFirewall_Click" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </UniformGrid>
+                    <StackPanel Margin="8,0,8,8">
                         <Border Style="{StaticResource Card}">
                             <DockPanel>
                                 <ui:HelpMark DockPanel.Dock="Right" TipKey="set.ports.tip" HelpKey="set.ports.help" />
@@ -272,6 +301,26 @@
                         </Border>
                         <Border Style="{StaticResource Card}">
                             <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.localPorts.tip" HelpKey="set.localPorts.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.localPorts], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,0" Text="{Binding [set.localPorts.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBox x:Name="LocalPortsBox" Style="{StaticResource Field}" Height="64" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.localIps.tip" HelpKey="set.localIps.help" />
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.localIps], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,0" Text="{Binding [set.localIps.lead], Source={x:Static ui:Loc.Instance}}" />
+                                    <TextBox x:Name="LocalIpsBox" Style="{StaticResource Field}" Height="64" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
                                 <ui:HelpMark DockPanel.Dock="Right" TipKey="set.exes.tip" HelpKey="set.exes.help" />
                                 <StackPanel>
                                     <TextBlock FontWeight="SemiBold" Text="{Binding [set.exes], Source={x:Static ui:Loc.Instance}}" />
@@ -280,16 +329,7 @@
                                 </StackPanel>
                             </DockPanel>
                         </Border>
-                        <Border Style="{StaticResource Card}">
-                            <DockPanel>
-                                <ui:HelpMark DockPanel.Dock="Right" TipKey="set.firewall.tip" HelpKey="set.firewall.help" />
-                                <StackPanel>
-                                    <TextBlock FontWeight="SemiBold" Text="{Binding [set.firewall], Source={x:Static ui:Loc.Instance}}" />
-                                    <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,10" Text="{Binding [set.firewall.lead], Source={x:Static ui:Loc.Instance}}" />
-                                    <Button HorizontalAlignment="Left" Content="{Binding [set.firewall], Source={x:Static ui:Loc.Instance}}" Click="ReplicateFirewall_Click" />
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
+                    </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -344,6 +384,7 @@
             <TabItem Header="{Binding [set.logs], Source={x:Static ui:Loc.Instance}}">
                 <DockPanel Margin="16,12">
                     <StackPanel DockPanel.Dock="Top">
+                    <UniformGrid Columns="2">
                         <Border Style="{StaticResource Card}">
                             <DockPanel>
                                 <ui:HelpMark DockPanel.Dock="Right" TipKey="set.logDrop.tip" HelpKey="set.logDrop.help" />
@@ -371,11 +412,50 @@
                                 </StackPanel>
                             </DockPanel>
                         </Border>
-                        <Button HorizontalAlignment="Left" Margin="0,0,0,10" Content="{Binding [set.openLogs], Source={x:Static ui:Loc.Instance}}" Click="OpenLogs_Click" />
+                    </UniformGrid>
+                    <StackPanel Orientation="Horizontal" Margin="4,8,4,4">
+                        <Button Content="{Binding [set.openLogs], Source={x:Static ui:Loc.Instance}}" Click="OpenLogs_Click" />
+                        <Button Margin="8,0,0,0" Content="{Binding [set.deleteLogs], Source={x:Static ui:Loc.Instance}}" Click="DeleteLogs_Click" />
+                    </StackPanel>
+                    <Border Style="{StaticResource Card}">
+                        <DockPanel>
+                            <ui:HelpMark DockPanel.Dock="Right" TipKey="set.rotate.tip" HelpKey="set.rotate.help" />
+                            <StackPanel>
+                                <TextBlock FontWeight="SemiBold" Text="{Binding [set.rotate], Source={x:Static ui:Loc.Instance}}" />
+                                <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.rotate.lead], Source={x:Static ui:Loc.Instance}}" />
+                                <ComboBox x:Name="LogRotateBox" Width="220" HorizontalAlignment="Left" Margin="0,6,0,0">
+                                    <ComboBoxItem Content="{Binding [set.rotate.off], Source={x:Static ui:Loc.Instance}}" />
+                                    <ComboBoxItem Content="{Binding [set.rotate.day], Source={x:Static ui:Loc.Instance}}" />
+                                    <ComboBoxItem Content="{Binding [set.rotate.week], Source={x:Static ui:Loc.Instance}}" />
+                                    <ComboBoxItem Content="{Binding [set.rotate.month], Source={x:Static ui:Loc.Instance}}" />
+                                    <ComboBoxItem Content="{Binding [set.rotate.half], Source={x:Static ui:Loc.Instance}}" />
+                                    <ComboBoxItem Content="{Binding [set.rotate.year], Source={x:Static ui:Loc.Instance}}" />
+                                </ComboBox>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
                     </StackPanel>
                     <TextBox x:Name="LogPreview" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
                              VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="11" />
                 </DockPanel>
+            </TabItem>
+
+            <TabItem Header="{Binding [set.backup], Source={x:Static ui:Loc.Instance}}">
+                <StackPanel Margin="16,12">
+                    <Border Style="{StaticResource Card}">
+                        <DockPanel>
+                            <ui:HelpMark DockPanel.Dock="Right" TipKey="set.backup.tip" HelpKey="set.backup.help" />
+                            <StackPanel>
+                                <TextBlock FontWeight="SemiBold" Text="{Binding [set.backup], Source={x:Static ui:Loc.Instance}}" />
+                                <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,10" Text="{Binding [set.backup.lead], Source={x:Static ui:Loc.Instance}}" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="{Binding [set.backup.export], Source={x:Static ui:Loc.Instance}}" Click="ExportBackup_Click" />
+                                    <Button Margin="8,0,0,0" Content="{Binding [set.backup.import], Source={x:Static ui:Loc.Instance}}" Click="ImportBackup_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
             </TabItem>
 
             <TabItem Header="{Binding [set.uninstall], Source={x:Static ui:Loc.Instance}}">
@@ -395,6 +475,16 @@
                             <StackPanel>
                                 <RadioButton x:Name="WipeBox" GroupName="un" FontWeight="SemiBold" Content="{Binding [set.wipe], Source={x:Static ui:Loc.Instance}}" />
                                 <TextBlock Style="{StaticResource Lead}" Text="{Binding [set.wipe.lead], Source={x:Static ui:Loc.Instance}}" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <DockPanel>
+                            <ui:HelpMark DockPanel.Dock="Right" TipKey="set.removeAll.tip" HelpKey="set.removeAll.help" />
+                            <StackPanel>
+                                <TextBlock FontWeight="SemiBold" Text="{Binding [set.removeAll], Source={x:Static ui:Loc.Instance}}" />
+                                <TextBlock Style="{StaticResource Lead}" Margin="0,4,8,10" Text="{Binding [set.removeAll.lead], Source={x:Static ui:Loc.Instance}}" />
+                                <Button HorizontalAlignment="Left" Content="{Binding [set.removeAll], Source={x:Static ui:Loc.Instance}}" Click="RemoveAll_Click" />
                             </StackPanel>
                         </DockPanel>
                     </Border>

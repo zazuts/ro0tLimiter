@@ -4,7 +4,7 @@
         xmlns:ui="clr-namespace:NetDivert.UI"
         Title="{Binding WindowTitle}"
         Width="1280" Height="800" MinWidth="900" MinHeight="500"
-        Background="{StaticResource BgBrush}" Foreground="{StaticResource FgBrush}"
+        Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
         FontFamily="Segoe UI" FontSize="12.5"
         WindowStartupLocation="CenterScreen">
 
@@ -15,7 +15,7 @@
         </Style>
 
         <Style x:Key="CategoryTab" TargetType="RadioButton">
-            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
             <Setter Property="Margin" Value="2,0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
@@ -26,12 +26,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="b" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                                <Setter Property="Foreground" Value="{StaticResource FgBrush}" />
+                                <Setter TargetName="b" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource FgBrush}" />
                                 <Setter Property="FontWeight" Value="SemiBold" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="{StaticResource FgBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource FgBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -58,7 +58,7 @@
             </MenuItem>
         </ContextMenu>
 
-        <ContextMenu x:Key="AppMenu">
+        <ContextMenu x:Key="AppMenu" x:Shared="False">
             <MenuItem Header="{Binding [menu.clear], Source={x:Static ui:Loc.Instance}}"
                       ToolTip="{Binding [menu.clear.tip], Source={x:Static ui:Loc.Instance}}"
                       Command="{Binding PlacementTarget.DataContext.ClearRuleCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
@@ -98,6 +98,23 @@
                       CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
                 <MenuItem.Icon>
                     <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE83D;" FontSize="14" Foreground="#FF9F43" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem Header="{Binding [menu.conns], Source={x:Static ui:Loc.Instance}}"
+                      ToolTip="{Binding [menu.conns.tip], Source={x:Static ui:Loc.Instance}}"
+                      Command="{Binding PlacementTarget.DataContext.CloseConnectionsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE703;" FontSize="14" Foreground="#3D8BFD" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{Binding [menu.kill], Source={x:Static ui:Loc.Instance}}"
+                      ToolTip="{Binding [menu.kill.tip], Source={x:Static ui:Loc.Instance}}"
+                      Command="{Binding PlacementTarget.DataContext.ForceStopCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                      CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                <MenuItem.Icon>
+                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7E8;" FontSize="14" Foreground="#FF5C5C" />
                 </MenuItem.Icon>
             </MenuItem>
             <MenuItem Header="{Binding PlacementTarget.SelectedItem.PinMenuText, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
@@ -149,35 +166,35 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="5" />
-            <RowDefinition Height="250" />
+            <RowDefinition x:Name="DetailSplitterRow" Height="5" />
+            <RowDefinition x:Name="DetailRow" Height="250" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Toolbar -->
-        <Border Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,8">
+        <Border Grid.Row="0" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,8">
             <DockPanel LastChildFill="False">
                 <Button DockPanel.Dock="Left" Content="{Binding StartStopText}" Command="{Binding StartStopCommand}" MinWidth="100" />
 
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding TotalDown}" Foreground="{StaticResource DownBrush}" FontSize="16" FontWeight="SemiBold" MinWidth="120" />
-                    <TextBlock Text="{Binding TotalUp}" Foreground="{StaticResource UpBrush}" FontSize="16" FontWeight="SemiBold" MinWidth="120" Margin="10,0,0,0" />
+                    <TextBlock Text="{Binding TotalDown}" Foreground="{DynamicResource DownBrush}" FontSize="16" FontWeight="SemiBold" MinWidth="120" />
+                    <TextBlock Text="{Binding TotalUp}" Foreground="{DynamicResource UpBrush}" FontSize="16" FontWeight="SemiBold" MinWidth="120" Margin="10,0,0,0" />
                 </StackPanel>
 
-                <Border DockPanel.Dock="Left" Margin="18,0,0,0" Padding="10,3" CornerRadius="4" BorderThickness="1" BorderBrush="{StaticResource BorderBrush}">
+                <Border DockPanel.Dock="Left" Margin="18,0,0,0" Padding="10,3" CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding [global], Source={x:Static ui:Loc.Instance}}" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <TextBlock Text="{Binding [global], Source={x:Static ui:Loc.Instance}}" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
                         <CheckBox IsChecked="{Binding GlobalDownEnabled}" Content="↓" />
                         <TextBox Style="{StaticResource EditBox}" Margin="6,0,4,0" Text="{Binding GlobalDownValue, StringFormat={}{0:0.##}, UpdateSourceTrigger=LostFocus}" />
-                        <TextBlock Text="{Binding LimitUnitLabel}" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding LimitUnitLabel}" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
                         <CheckBox IsChecked="{Binding GlobalUpEnabled}" Content="↑" Margin="16,0,0,0" />
                         <TextBox Style="{StaticResource EditBox}" Margin="6,0,4,0" Text="{Binding GlobalUpValue, StringFormat={}{0:0.##}, UpdateSourceTrigger=LostFocus}" />
-                        <TextBlock Text="{Binding LimitUnitLabel}" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding LimitUnitLabel}" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
                     </StackPanel>
                 </Border>
 
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding [unit], Source={x:Static ui:Loc.Instance}}" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <TextBlock Text="{Binding [unit], Source={x:Static ui:Loc.Instance}}" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
                     <ComboBox ItemsSource="{Binding UnitOptions}" SelectedIndex="{Binding UnitIndex}" Width="100"
                               ToolTip="Unidade das velocidades e dos campos de limite (Automático: velocidades se ajustam, limites em KB/s)" />
                 </StackPanel>
@@ -189,13 +206,13 @@
         </Border>
 
         <!-- Categories -->
-        <Border Grid.Row="1" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="6,0">
-            <DockPanel LastChildFill="False">
+        <Border Grid.Row="1" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="6,0">
+            <DockPanel LastChildFill="True">
                 <Button DockPanel.Dock="Right" Content="{Binding ClearInactiveText}" Command="{Binding ClearInactiveCommand}" Margin="8,6,4,6"
-                        ToolTip="Tira da lista os programas que já usaram a rede e agora estão parados. Eles voltam sozinhos quando enviarem ou receberem dados de novo." />
+                        ToolTip="Tira da lista os inativos, os arquivos que não existem e os que só fizeram uma verificação rápida e fecharam. Eles voltam se usarem a rede de novo." />
                 <Grid DockPanel.Dock="Right" Width="230" Margin="8,6">
                     <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="{Binding [search], Source={x:Static ui:Loc.Instance}}" Foreground="{StaticResource MutedBrush}" Margin="7,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                    <TextBlock Text="{Binding [search], Source={x:Static ui:Loc.Instance}}" Foreground="{DynamicResource MutedBrush}" Margin="7,0" VerticalAlignment="Center" IsHitTestVisible="False">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -208,9 +225,12 @@
                         </TextBlock.Style>
                     </TextBlock>
                 </Grid>
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <RadioButton GroupName="AppCategory" Style="{StaticResource CategoryTab}" Content="{Binding TabAllText}" IsChecked="{Binding TabIsAll}"
                                  ToolTip="Todos os programas monitorados, exceto os ocultos e os que você limpou" />
+                    <RadioButton GroupName="AppCategory" Style="{StaticResource CategoryTab}" Content="{Binding TabOnlineText}" IsChecked="{Binding TabIsOnline}"
+                                 ToolTip="Programas que estão usando a rede agora" />
                     <RadioButton GroupName="AppCategory" Style="{StaticResource CategoryTab}" Content="{Binding TabOfflineText}" IsChecked="{Binding TabIsOffline}"
                                  ToolTip="Programas em execução que ainda não fizeram nenhuma conexão" />
                     <RadioButton GroupName="AppCategory" Style="{StaticResource CategoryTab}" Content="{Binding TabInactiveText}" IsChecked="{Binding TabIsInactive}"
@@ -219,21 +239,36 @@
                                  ToolTip="Programas que você marcou com o botão direito, em Adicionar à minha lista" />
                     <RadioButton GroupName="AppCategory" Style="{StaticResource CategoryTab}" Content="{Binding TabHiddenText}" IsChecked="{Binding TabIsHidden}"
                                  ToolTip="Programas que você ocultou. Eles continuam limitados ou bloqueados." />
+                    <RadioButton GroupName="AppCategory" Style="{StaticResource CategoryTab}" Content="{Binding TabActiveText}" IsChecked="{Binding TabIsActiveRules}"
+                                 ToolTip="Programas atingidos por uma regra ativa, inclusive um domínio bloqueado" />
+                    <RadioButton GroupName="AppCategory" Style="{StaticResource CategoryTab}" Content="{Binding TabTunnelText}" IsChecked="{Binding TabIsTunnel}"
+                                 ToolTip="Programas liberados apenas por um adaptador" />
                 </StackPanel>
+                </ScrollViewer>
             </DockPanel>
         </Border>
 
         <!-- Applications -->
-        <DataGrid Grid.Row="2" x:Name="AppsGrid" ItemsSource="{Binding Apps}" SelectedItem="{Binding SelectedApp}"
+        <Grid Grid.Row="2" x:Name="AppsSplit">
+            <Grid.RowDefinitions>
+                <RowDefinition x:Name="ActiveRow" Height="*" />
+                <RowDefinition x:Name="OnlineSplitRow" Height="0" />
+                <RowDefinition x:Name="CoolingRow" Height="0" />
+            </Grid.RowDefinitions>
+        <DataGrid Grid.Row="0" x:Name="AppsGrid" ItemsSource="{Binding Apps}"
+                  CanUserResizeColumns="True" ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                  PreviewMouseRightButtonDown="AppsGrid_PreviewMouseRightButtonDown"
+                  SelectionChanged="AppsGrid_SelectionChanged"
+                  MouseDoubleClick="AppsGrid_MouseDoubleClick"
                   ContextMenu="{StaticResource AppMenu}">
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding BlockOut}" Value="True">
-                            <Setter Property="Foreground" Value="{StaticResource BlockBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource BlockBrush}" />
                         </DataTrigger>
                         <DataTrigger Binding="{Binding BlockIn}" Value="True">
-                            <Setter Property="Foreground" Value="{StaticResource BlockBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource BlockBrush}" />
                         </DataTrigger>
                         <DataTrigger Binding="{Binding HasHighlight}" Value="True">
                             <Setter Property="Background" Value="{Binding HighlightBrush}" />
@@ -242,7 +277,7 @@
                 </Style>
             </DataGrid.RowStyle>
             <DataGrid.Columns>
-                <DataGridTemplateColumn x:Name="AppColumn" Header="Aplicativo" Width="2*" MinWidth="200" SortMemberPath="Name" CanUserSort="True">
+                <DataGridTemplateColumn x:Name="AppColumn" Header="Aplicativo" Width="280" MinWidth="140" SortMemberPath="Name" CanUserSort="True" CanUserResize="True">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" ToolTip="{Binding Tip}">
@@ -252,10 +287,10 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTextColumn x:Name="PidColumn" Header="PID" Binding="{Binding PidsText}" Width="80">
+                <DataGridTextColumn x:Name="PidColumn" Header="PID" Binding="{Binding PidsText}" Width="110" MinWidth="70" CanUserResize="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
                             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
                         </Style>
                     </DataGridTextColumn.ElementStyle>
@@ -269,7 +304,7 @@
                 <DataGridTextColumn x:Name="DiscardColumn" Header="Descartado" Binding="{Binding DiscardedText}" SortMemberPath="Discarded" Width="85">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock" BasedOn="{StaticResource RightCell}">
-                            <Setter Property="Foreground" Value="{StaticResource BlockBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource BlockBrush}" />
                             <Setter Property="ToolTip" Value="Bytes descartados pelo limitador ou bloqueados pelo firewall" />
                         </Style>
                     </DataGridTextColumn.ElementStyle>
@@ -311,13 +346,118 @@
                 </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
+            <GridSplitter x:Name="OnlineSplit" Grid.Row="1" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                          ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Cursor="SizeNS"
+                          Background="{DynamicResource BorderBrush}" Visibility="Collapsed" />
+            <Grid x:Name="CoolingPane" Grid.Row="2" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+            <TextBlock x:Name="CoolingNote" Grid.Row="0" Margin="10,4,10,2" FontSize="11"
+                       Foreground="{DynamicResource MutedBrush}" Text="{Binding [online.note], Source={x:Static ui:Loc.Instance}}"
+                       TextWrapping="Wrap" />
+            <DataGrid x:Name="CoolingGrid" Grid.Row="1" ItemsSource="{Binding CoolingApps}"
+                      VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                      CanUserResizeColumns="True" ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                      PreviewMouseRightButtonDown="AppsGrid_PreviewMouseRightButtonDown"
+                      SelectionChanged="CoolingGrid_SelectionChanged"
+                      MouseDoubleClick="AppsGrid_MouseDoubleClick"
+                      ContextMenu="{StaticResource AppMenu}">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding BlockOut}" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource BlockBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding BlockIn}" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource BlockBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding HasHighlight}" Value="True">
+                                <Setter Property="Background" Value="{Binding HighlightBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="Aplicativo" Width="280" SortMemberPath="Name">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" ToolTip="{Binding Tip}">
+                                    <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,8,0" />
+                                    <TextBlock Text="{Binding Name}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="PID" Binding="{Binding PidsText}" Width="110" />
+                    <DataGridTextColumn Header="Adaptador" Binding="{Binding AdaptersText}" Width="130" />
+                    <DataGridTextColumn Header="Download" Binding="{Binding DownRateText}" SortMemberPath="DownRate" Width="95" ElementStyle="{StaticResource DownCell}" />
+                    <DataGridTextColumn Header="Upload" Binding="{Binding UpRateText}" SortMemberPath="UpRate" Width="95" ElementStyle="{StaticResource UpCell}" />
+                    <DataGridTextColumn Header="Total ↓" Binding="{Binding TotalInText}" SortMemberPath="TotalIn" Width="85" ElementStyle="{StaticResource RightCell}" />
+                    <DataGridTextColumn Header="Total ↑" Binding="{Binding TotalOutText}" SortMemberPath="TotalOut" Width="85" ElementStyle="{StaticResource RightCell}" />
+                    <DataGridTextColumn Header="Conexões" Binding="{Binding ConnectionCount}" Width="75" ElementStyle="{StaticResource RightCell}" />
+                    <DataGridTextColumn Header="Descartado" Binding="{Binding DiscardedText}" SortMemberPath="Discarded" Width="85" ElementStyle="{StaticResource RightCell}" />
+                    <DataGridTemplateColumn Header="Limite ↓" Width="140" MinWidth="120" SortMemberPath="LimitDownEnabled">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding LimitDownEnabled, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Style="{StaticResource EditBox}" Margin="6,0,0,0" Text="{Binding LimitDownValue, StringFormat={}{0:0.##}, UpdateSourceTrigger=LostFocus}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Limite ↑" Width="140" MinWidth="120" SortMemberPath="LimitUpEnabled">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding LimitUpEnabled, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Style="{StaticResource EditBox}" Margin="6,0,0,0" Text="{Binding LimitUpValue, StringFormat={}{0:0.##}, UpdateSourceTrigger=LostFocus}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Bloquear ↓" Width="80" MinWidth="72" SortMemberPath="BlockIn">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding BlockIn, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Bloquear ↑" Width="80" MinWidth="72" SortMemberPath="BlockOut">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding BlockOut, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+            </Grid>
+        </Grid>
+        <Border Grid.Row="2" Opacity="0.94" Background="{DynamicResource PanelBrush}" IsHitTestVisible="True">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding AppsLoading}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding [load.list], Source={x:Static ui:Loc.Instance}}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Foreground="{DynamicResource FgBrush}" FontSize="14" />
+        </Border>
 
-        <GridSplitter Grid.Row="3" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}" />
+        <GridSplitter Grid.Row="3" HorizontalAlignment="Stretch" Background="{DynamicResource BorderBrush}" />
 
         <!-- Details -->
         <TabControl Grid.Row="4">
             <TabItem x:Name="ConnTab" Header="Conexões do aplicativo selecionado">
-                <DataGrid ItemsSource="{Binding Connections}">
+                <Grid>
+                <DataGrid x:Name="ConnGrid" ItemsSource="{Binding Connections}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Protocolo" Binding="{Binding Protocol}" Width="70" />
                         <DataGridTextColumn Header="Local" Binding="{Binding Local}" Width="200" />
@@ -331,6 +471,21 @@
                         <DataGridTextColumn Header="Total ↑" Binding="{Binding TotalOutText}" SortMemberPath="TotalOut" Width="85" ElementStyle="{StaticResource RightCell}" />
                     </DataGrid.Columns>
                 </DataGrid>
+                <Border Opacity="0.94" Background="{DynamicResource PanelBrush}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ConnectionsLoading}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock Text="{Binding [load.conns], Source={x:Static ui:Loc.Instance}}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{DynamicResource FgBrush}" FontSize="14" />
+                </Border>
+                </Grid>
             </TabItem>
             <TabItem x:Name="ListenTab" Header="Escutando portas">
                 <DataGrid ItemsSource="{Binding Listeners}">
@@ -348,21 +503,77 @@
                 <Grid>
                     <ui:TrafficGraph x:Name="Graph" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10,6">
-                        <TextBlock Text="{Binding GraphTitle}" Foreground="{StaticResource MutedBrush}" Margin="0,0,16,0" />
-                        <TextBlock Text="■ Download" Foreground="{StaticResource DownBrush}" Margin="0,0,10,0" />
-                        <TextBlock Text="■ Upload" Foreground="{StaticResource UpBrush}" />
+                        <TextBlock Text="{Binding GraphTitle}" Foreground="{DynamicResource MutedBrush}" Margin="0,0,16,0" />
+                        <TextBlock Text="■ Download" Foreground="{DynamicResource DownBrush}" Margin="0,0,10,0" />
+                        <TextBlock Text="■ Upload" Foreground="{DynamicResource UpBrush}" />
                     </StackPanel>
-                    <TextBlock Text="últimos 2 minutos" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10,4" FontSize="10" />
+                    <TextBlock Text="últimos 2 minutos" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10,4" FontSize="10" />
                 </Grid>
+            </TabItem>
+            <TabItem Header="{Binding [redir.title], Source={x:Static ui:Loc.Instance}}">
+                <DockPanel Margin="10">
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="{Binding [redir.lead], Source={x:Static ui:Loc.Instance}}" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,0,0,8" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="{Binding [redir.ip], Source={x:Static ui:Loc.Instance}}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <TextBox Text="{Binding RedirectIp, UpdateSourceTrigger=PropertyChanged}" Width="120" Margin="0,0,12,0" />
+                            <TextBlock Text="{Binding [redir.port], Source={x:Static ui:Loc.Instance}}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <TextBox Text="{Binding RedirectPort, UpdateSourceTrigger=PropertyChanged}" Width="70" Margin="0,0,12,0" />
+                            <TextBlock Text="{Binding [redir.protocol], Source={x:Static ui:Loc.Instance}}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <ComboBox Width="90" SelectedValue="{Binding RedirectProtocol}" SelectedValuePath="Tag">
+                                <ComboBoxItem Content="tcp" Tag="tcp" />
+                                <ComboBoxItem Content="udp" Tag="udp" />
+                                <ComboBoxItem Content="all" Tag="all" />
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <CheckBox Content="{Binding [redir.autostart], Source={x:Static ui:Loc.Instance}}" IsChecked="{Binding RedirectAutoStart}" VerticalAlignment="Center" />
+                                <ui:HelpMark TipKey="redir.autostart.tip" HelpKey="redir.autostart.help" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <CheckBox Content="{Binding [redir.chrome], Source={x:Static ui:Loc.Instance}}" IsChecked="{Binding RedirectChrome}" VerticalAlignment="Center" />
+                                <ui:HelpMark TipKey="redir.chrome.tip" HelpKey="redir.chrome.help" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <CheckBox Content="{Binding [redir.log], Source={x:Static ui:Loc.Instance}}" IsChecked="{Binding RedirectLog}" VerticalAlignment="Center" />
+                                <ui:HelpMark TipKey="redir.log.tip" HelpKey="redir.log.help" />
+                            </StackPanel>
+                            <Button Content="{Binding RedirectButtonText}" Click="ToggleRedirect_Click" Margin="0,0,12,0" />
+                            <TextBlock Text="{Binding RedirectStatus}" VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Content="{Binding [redir.addFile], Source={x:Static ui:Loc.Instance}}" Click="RedirectAddFile_Click" Margin="0,0,8,0" />
+                            <Button Content="{Binding [redir.addName], Source={x:Static ui:Loc.Instance}}" Click="RedirectAddName_Click" Margin="0,0,8,0" />
+                            <Button Content="{Binding [redir.addWild], Source={x:Static ui:Loc.Instance}}" Click="RedirectAddWild_Click" Margin="0,0,8,0" />
+                            <Button Content="{Binding [redir.remove], Source={x:Static ui:Loc.Instance}}" Click="RedirectRemove_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                    <ListBox x:Name="RedirectList" ItemsSource="{Binding RedirectPatterns}" Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}" BorderBrush="{DynamicResource BorderBrush}">
+                        <ListBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{Binding [redir.addName], Source={x:Static ui:Loc.Instance}}" Click="RedirectAddName_Click" />
+                                <MenuItem Header="{Binding [redir.addWild], Source={x:Static ui:Loc.Instance}}" Click="RedirectAddWild_Click" />
+                                <MenuItem Header="{Binding [redir.addApp], Source={x:Static ui:Loc.Instance}}" Click="RedirectAddApp_Click" />
+                                <MenuItem Header="{Binding [redir.remove], Source={x:Static ui:Loc.Instance}}" Click="RedirectRemove_Click" />
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
+                    </ListBox>
+                </DockPanel>
             </TabItem>
         </TabControl>
 
         <!-- Status bar -->
-        <Border Grid.Row="5" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="10,4">
+        <Border Grid.Row="5" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="10,4">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="{Binding ModeText}" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,2" />
+                <Button x:Name="DetailsToggle" DockPanel.Dock="Right" Margin="12,0,0,0" MinWidth="88" Click="ToggleDetails_Click"
+                        Content="{Binding [panel.hide], Source={x:Static ui:Loc.Instance}}" />
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,2">
+                    <TextBlock Text="{Binding ModeText}" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                    <ui:HelpMark TipKey="{Binding ModeTipKey}" HelpKey="{Binding ModeHelpKey}" />
+                </StackPanel>
                 <TextBlock DockPanel.Dock="Left" Text="{Binding StatusText}" Margin="0,0,24,0" />
-                <TextBlock Text="{Binding StatsText}" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding StatsText}" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
             </DockPanel>
         </Border>
     </Grid>

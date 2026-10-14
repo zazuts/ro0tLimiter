@@ -4,16 +4,20 @@
         xmlns:ui="clr-namespace:NetDivert.UI"
         Title="{Binding [adapter.title], Source={x:Static ui:Loc.Instance}}"
         Width="720" Height="420" WindowStartupLocation="CenterOwner"
-        Background="{StaticResource BgBrush}" Foreground="{StaticResource FgBrush}"
+        Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
         FontFamily="Segoe UI" FontSize="12.5">
     <DockPanel Margin="12">
         <TextBlock DockPanel.Dock="Top" Text="{Binding [adapter.help], Source={x:Static ui:Loc.Instance}}"
-                   TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,8" />
+                   TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,0,0,4" />
+        <TextBlock DockPanel.Dock="Top" Text="{Binding [adapter.exclusive], Source={x:Static ui:Loc.Instance}}"
+                   TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,0,0,8" />
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
             <Button Content="{Binding [set.cancel], Source={x:Static ui:Loc.Instance}}" Margin="0,0,8,0" Click="Cancel_Click" />
             <Button Content="{Binding [set.save], Source={x:Static ui:Loc.Instance}}" IsDefault="True" Click="Save_Click" />
         </StackPanel>
-        <DataGrid x:Name="Grid" ItemsSource="{Binding Rows}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="False">
+        <DataGrid x:Name="Grid" ItemsSource="{Binding Rows}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="False"
+                  CanUserReorderColumns="False" CanUserResizeColumns="True"
+                  ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{Binding [col.adapter], Source={x:Static ui:Loc.Instance}}" Binding="{Binding Name}" IsReadOnly="True" Width="*" />
                 <DataGridCheckBoxColumn Header="{Binding [col.blockDown], Source={x:Static ui:Loc.Instance}}" Binding="{Binding BlockIn, UpdateSourceTrigger=PropertyChanged}" Width="90" />
@@ -22,6 +26,7 @@
                 <DataGridTextColumn Header="KB/s" Binding="{Binding LimitDownKBps, UpdateSourceTrigger=LostFocus}" Width="70" />
                 <DataGridCheckBoxColumn Header="{Binding [col.limitUp], Source={x:Static ui:Loc.Instance}}" Binding="{Binding LimitUpEnabled, UpdateSourceTrigger=PropertyChanged}" Width="90" />
                 <DataGridTextColumn Header="KB/s" Binding="{Binding LimitUpKBps, UpdateSourceTrigger=LostFocus}" Width="70" />
+                <DataGridCheckBoxColumn Header="{Binding [col.exclusive], Source={x:Static ui:Loc.Instance}}" Binding="{Binding Exclusive, UpdateSourceTrigger=PropertyChanged}" Width="80" />
             </DataGrid.Columns>
         </DataGrid>
     </DockPanel>

@@ -2,7 +2,7 @@
 ; WinDivert.dll and WinDivert64.sys are shipped inside the setup, with their license.
 
 #define MyAppName "ro0tLimiter"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.9"
 #define MyAppPublisher "Andre"
 #define MyAppExeName "ro0tLimiter.exe"
 
@@ -27,11 +27,11 @@ ArchitecturesInstallIn64BitMode=x64compatible
 LicenseFile=..\third_party\WinDivert\LICENSE
 InfoBeforeFile=Before.rtf
 UninstallDisplayIcon={app}\{#MyAppExeName}
-VersionInfoVersion=1.0.0.0
+VersionInfoVersion=1.0.9.0
 VersionInfoCompany=Andre
 VersionInfoDescription=ro0tLimiter setup
 VersionInfoProductName=ro0tLimiter
-VersionInfoProductVersion=1.0.0.0
+VersionInfoProductVersion=1.0.9.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -81,13 +81,38 @@ begin
   end;
 end;
 
+procedure StopProduct;
+var
+  Code: Integer;
+begin
+  Exec(ExpandConstant('{sys}\net.exe'), 'stop ro0tLimiter', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM ro0tLimiter.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Sleep(400);
+end;
+
+procedure StartProductService;
+var
+  Code: Integer;
+begin
+  if not Exec(ExpandConstant('{sys}\sc.exe'), 'query ro0tLimiter', '', SW_HIDE, ewWaitUntilTerminated, Code) then
+    Exit;
+  if Code = 0 then
+    Exec(ExpandConstant('{sys}\net.exe'), 'start ro0tLimiter', '', SW_HIDE, ewWaitUntilTerminated, Code);
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   Dest: String;
   Code: Integer;
 begin
+  if CurStep = ssPostInstall then
+  begin
+    StartProductService;
+    Exit;
+  end;
   if CurStep <> ssInstall then
     Exit;
+  StopProduct;
   if DesktopRuntimeInstalled then
   begin
     WizardForm.StatusLabel.Caption := 'The .NET 8 Desktop Runtime is already installed.';

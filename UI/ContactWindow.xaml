@@ -3,19 +3,18 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:NetDivert.UI"
         Title="{Binding [contact.title], Source={x:Static ui:Loc.Instance}}"
-        Width="640" Height="760" MinHeight="640" WindowStartupLocation="CenterOwner"
-        Background="{StaticResource BgBrush}" Foreground="{StaticResource FgBrush}"
+        Width="640" Height="820" MinHeight="640" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
         FontFamily="Segoe UI" FontSize="13.5">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="22">
             <TextBlock Text="ro0tLimiter" FontSize="26" FontWeight="SemiBold" />
-            <TextBlock Text="© 2026 Andre" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0" />
 
             <TextBlock Text="{Binding [contact.mail], Source={x:Static ui:Loc.Instance}}" FontWeight="SemiBold" Margin="0,18,0,4" />
-            <TextBlock x:Name="MailLink" Foreground="{StaticResource AccentBrush}" Cursor="Hand" MouseLeftButtonUp="Mail_Click" />
+            <TextBlock x:Name="MailLink" Foreground="{DynamicResource AccentBrush}" Cursor="Hand" MouseLeftButtonUp="Mail_Click" />
 
             <TextBlock Text="{Binding [contact.github], Source={x:Static ui:Loc.Instance}}" FontWeight="SemiBold" Margin="0,16,0,4" />
-            <TextBlock x:Name="GitHubLink" Foreground="{StaticResource AccentBrush}" Cursor="Hand" TextDecorations="Underline" MouseLeftButtonUp="GitHub_Click" />
+            <TextBlock x:Name="GitHubLink" Foreground="{DynamicResource AccentBrush}" Cursor="Hand" TextDecorations="Underline" MouseLeftButtonUp="GitHub_Click" />
 
             <TextBlock Text="{Binding [contact.donate], Source={x:Static ui:Loc.Instance}}" FontWeight="SemiBold" Margin="0,18,0,8" />
             <StackPanel Orientation="Horizontal">
@@ -26,9 +25,15 @@
                     <Image x:Name="QrImage" Width="132" Height="132" Stretch="Uniform" />
                 </Border>
             </StackPanel>
+            <TextBlock Text="{Binding [contact.about], Source={x:Static ui:Loc.Instance}}" TextWrapping="Wrap" LineHeight="20" Margin="0,12,0,0" />
 
-            <TextBlock Text="{Binding [contact.license], Source={x:Static ui:Loc.Instance}}" FontWeight="SemiBold" Margin="0,18,0,6" />
-            <TextBlock Text="{Binding [contact.license.body], Source={x:Static ui:Loc.Instance}}" TextWrapping="Wrap" LineHeight="20" Foreground="{StaticResource MutedBrush}" />
+            <TextBlock Text="{Binding [contact.license], Source={x:Static ui:Loc.Instance}}" FontWeight="SemiBold" FontSize="12" Margin="0,18,0,4" />
+            <TextBlock Text="{Binding [contact.license.body], Source={x:Static ui:Loc.Instance}}" TextWrapping="Wrap" FontSize="12" LineHeight="17"
+                       Foreground="{DynamicResource MutedBrush}" />
+            <TextBlock x:Name="LgplLink" FontSize="12" Margin="0,6,0,0" Foreground="{DynamicResource AccentBrush}" Cursor="Hand" TextDecorations="Underline" MouseLeftButtonUp="Lgpl_Click" />
+            <TextBlock x:Name="LicenseFileLink" FontSize="12" Margin="0,4,0,0" Foreground="{DynamicResource AccentBrush}" Cursor="Hand" TextDecorations="Underline" MouseLeftButtonUp="LicenseFile_Click" />
+
+            <TextBlock Text="{Binding [contact.footer], Source={x:Static ui:Loc.Instance}}" Margin="0,22,0,0" Foreground="{DynamicResource MutedBrush}" />
         </StackPanel>
     </ScrollViewer>
 </Window>

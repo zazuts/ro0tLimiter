@@ -23,14 +23,21 @@ namespace NetDivert.UI
         Inactive,
         Favorites,
         Hidden,
+        Online,
+        ActiveRules,
+        Tunnel,
     }
 
     public sealed class MainViewModel : ObservableObject, IDisposable
     {
         private readonly UiSettings _settings = UiSettings.Current;
+        private readonly RedirectSettings _redirect = RedirectStore.Load();
+        private readonly RedirectController _redirector = new();
+        private SettingsWindow? _settingsWindow;
         private readonly Dictionary<string, AppRowViewModel> _rows = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, ConnectionRowViewModel> _connRows = new();
         private readonly HashSet<AppRowViewModel> _visible = new();
+        private readonly HashSet<AppRowViewModel> _cooling = new();
         private readonly HashSet<string> _favorites;
         private readonly HashSet<string> _hidden;
         private readonly HashSet<string> _dismissed;
@@ -38,6 +45,8 @@ namespace NetDivert.UI
         private readonly DispatcherTimer _timer;
         private readonly Stopwatch _clock = Stopwatch.StartNew();
         private readonly ListCollectionView _appsView;
+        private readonly ListCollectionView _listenerView;
+        private readonly ListCollectionView _coolingView;
 
         private IEngineHost? _host;
         private bool _busy;
@@ -56,7 +65,7 @@ namespace NetDivert.UI
         private string _graphTitle = "Tráfego total";
         private string _trayText = Brand.Product;
         private AppTab _tab;
-        private int _nAll, _nOffline, _nInactive, _nFavorites, _nHidden;
+        private int _nAll, _nOffline, _nInactive, _nClearable, _nFavorites, _nHidden, _nOnline, _nActive, _nTunnel;
         private long _lastScan;
         private int _scanning;
 
@@ -73,9 +82,23 @@ namespace NetDivert.UI
             _appsView = (ListCollectionView)CollectionViewSource.GetDefaultView(Apps);
             _appsView.Filter = o => o is AppRowViewModel r && _visible.Contains(r);
             _appsView.SortDescriptions.Add(new SortDescription(nameof(AppRowViewModel.Name), ListSortDirection.Ascending));
+            _listenerView = (ListCollectionView)CollectionViewSource.GetDefaultView(Listeners);
+            _listenerView.Filter = MatchListener;
+            _coolingView = new ListCollectionView(Apps)
+            {
+                Filter = o => o is AppRowViewModel r && _cooling.Contains(r),
+            };
+            _coolingView.SortDescriptions.Add(new SortDescription(nameof(AppRowViewModel.Name), ListSortDirection.Ascending));
 
             StartStopCommand = new RelayCommand(_ => ToggleEngine(), _ => _host != null && !_busy);
-            ClearRuleCommand = new RelayCommand(p => (p as AppRowViewModel)?.ClearRule());
+            ClearRuleCommand = new RelayCommand(p =>
+            {
+                if (p is not AppRowViewModel row)
+                    return;
+                row.ClearRule();
+                if (_settings.AskedOnline.Remove(row.Key))
+                    _settings.Save();
+            });
             OpenFolderCommand = new RelayCommand(p =>
             {
                 if (p is AppRowViewModel { ExePath: { } path })
@@ -90,20 +113,41 @@ namespace NetDivert.UI
             UninstallServiceCommand = new RelayCommand(_ => _ = UninstallServiceAsync(), _ => !_busy && ServiceManager.IsInstalled);
             ToggleFavoriteCommand = new RelayCommand(p => { if (p is AppRowViewModel r) Toggle(_favorites, r); });
             ToggleHiddenCommand = new RelayCommand(p => { if (p is AppRowViewModel r) Toggle(_hidden, r); });
-            ClearInactiveCommand = new RelayCommand(_ => ClearInactive(), _ => _nInactive > 0);
-            SettingsCommand = new RelayCommand(_ => new SettingsWindow { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog());
+            ClearInactiveCommand = new RelayCommand(_ => ClearInactive(), _ => _nClearable > 0);
+            SettingsCommand = new RelayCommand(_ => OpenSettings());
             ContactCommand = new RelayCommand(_ => new ContactWindow { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog());
             AdapterRulesCommand = new RelayCommand(p => EditAdapterRules(p as AppRowViewModel));
             TogglePinCommand = new RelayCommand(p => { if (p is AppRowViewModel r) Toggle(_pinned, r); });
             AllowOutCommand = new RelayCommand(p => (p as AppRowViewModel)?.ToggleAllow(true));
             AllowInCommand = new RelayCommand(p => (p as AppRowViewModel)?.ToggleAllow(false));
             FirewallCommand = new RelayCommand(p => ReplicateFirewall(p as AppRowViewModel));
+            CloseConnectionsCommand = new RelayCommand(p => CloseConnections(p as AppRowViewModel));
+            ForceStopCommand = new RelayCommand(p => ForceStop(p as AppRowViewModel));
 
             _timer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Background, (_, _) => Tick(), App.Current.Dispatcher);
+            foreach (var pattern in _redirect.Patterns)
+                RedirectPatterns.Add(pattern);
+            if (_redirect.StartWithApp && _redirect.Patterns.Count > 0)
+            {
+                try
+                {
+                    _redirector.Start(_redirect);
+                    _redirect.Running = true;
+                    SaveRedirect();
+                }
+                catch (Exception ex)
+                {
+                    _redirectError = ex.Message;
+                    _redirect.Running = false;
+                    SaveRedirect();
+                }
+            }
         }
 
         public ObservableCollection<AppRowViewModel> Apps { get; } = new();
         public ObservableCollection<ConnectionRowViewModel> Connections { get; } = new();
+        public ListCollectionView CoolingApps => _coolingView;
+        public bool ShowCoolingList => _tab == AppTab.Online;
 
         public History TotalDownHistory { get; } = new(120);
         public History TotalUpHistory { get; } = new(120);
@@ -124,6 +168,8 @@ namespace NetDivert.UI
         public ICommand AllowOutCommand { get; }
         public ICommand AllowInCommand { get; }
         public ICommand FirewallCommand { get; }
+        public ICommand CloseConnectionsCommand { get; }
+        public ICommand ForceStopCommand { get; }
 
         public ObservableCollection<ListenerSnapshot> Listeners { get; } = new();
 
@@ -139,6 +185,8 @@ namespace NetDivert.UI
         public bool IsServiceMode => _host?.IsService == true;
 
         public string ModeText => _host == null ? "" : IsServiceMode ? Loc.Get("mode.service") : Loc.Get("mode.local");
+        public string ModeTipKey => IsServiceMode ? "mode.service.tip" : "mode.local.tip";
+        public string ModeHelpKey => IsServiceMode ? "mode.service.help" : "mode.local.help";
 
         public string ServiceStatusText => ServiceManager.GetState() switch
         {
@@ -162,6 +210,8 @@ namespace NetDivert.UI
         public string StatsText { get => _statsText; private set => Set(ref _statsText, value); }
         public string GraphTitle { get => _graphTitle; private set => Set(ref _graphTitle, value); }
         public string TrayText { get => _trayText; private set => Set(ref _trayText, value); }
+        public bool AppsLoading => _appsLoading;
+        public bool ConnectionsLoading => _connectionsLoading;
 
         public AppRowViewModel? SelectedApp
         {
@@ -171,8 +221,21 @@ namespace NetDivert.UI
                 if (!Set(ref _selectedApp, value))
                     return;
                 GraphTitle = value == null ? Loc.Get("graph.total") : Loc.Get("graph.of") + value.Name;
-                Connections.Clear();
-                _connRows.Clear();
+                if (value != null && FollowsConnections)
+                {
+                    Connections.Clear();
+                    _connRows.Clear();
+                    _selectGen++;
+                    SetFlag(ref _connectionsLoading, true, nameof(ConnectionsLoading));
+                }
+                else if (Connections.Count > 0 || _connectionsLoading)
+                {
+                    Connections.Clear();
+                    _connRows.Clear();
+                    SetFlag(ref _connectionsLoading, false, nameof(ConnectionsLoading));
+                }
+                if (value == null)
+                    ShowAllListeners();
                 Refreshed?.Invoke();
             }
         }
@@ -183,7 +246,7 @@ namespace NetDivert.UI
             set
             {
                 if (Set(ref _searchText, value))
-                    RefreshFilter(force: true);
+                    QueueSearch();
             }
         }
 
@@ -192,13 +255,19 @@ namespace NetDivert.UI
         public bool TabIsInactive { get => _tab == AppTab.Inactive; set { if (value) SetTab(AppTab.Inactive); } }
         public bool TabIsFavorites { get => _tab == AppTab.Favorites; set { if (value) SetTab(AppTab.Favorites); } }
         public bool TabIsHidden { get => _tab == AppTab.Hidden; set { if (value) SetTab(AppTab.Hidden); } }
+        public bool TabIsOnline { get => _tab == AppTab.Online; set { if (value) SetTab(AppTab.Online); } }
+        public bool TabIsActiveRules { get => _tab == AppTab.ActiveRules; set { if (value) SetTab(AppTab.ActiveRules); } }
+        public bool TabIsTunnel { get => _tab == AppTab.Tunnel; set { if (value) SetTab(AppTab.Tunnel); } }
 
         public string TabAllText => $"{Loc.Get("tab.all")} ({_nAll})";
         public string TabOfflineText => $"{Loc.Get("tab.offline")} ({_nOffline})";
         public string TabInactiveText => $"{Loc.Get("tab.inactive")} ({_nInactive})";
         public string TabFavoritesText => $"{Loc.Get("tab.favorites")} ({_nFavorites})";
         public string TabHiddenText => $"{Loc.Get("tab.hidden")} ({_nHidden})";
-        public string ClearInactiveText => _nInactive == 0 ? Loc.Get("clear.inactive") : $"{Loc.Get("clear.inactive")} ({_nInactive})";
+        public string TabOnlineText => $"{Loc.Get("tab.online")} ({_nOnline})";
+        public string TabActiveText => $"{Loc.Get("tab.active")} ({_nActive})";
+        public string TabTunnelText => $"{Loc.Get("tab.tunnel")} ({_nTunnel})";
+        public string ClearInactiveText => _nClearable == 0 ? Loc.Get("clear.inactive") : $"{Loc.Get("clear.inactive")} ({_nClearable})";
 
         private void SetTab(AppTab tab)
         {
@@ -212,7 +281,22 @@ namespace NetDivert.UI
             OnPropertyChanged(nameof(TabIsInactive));
             OnPropertyChanged(nameof(TabIsFavorites));
             OnPropertyChanged(nameof(TabIsHidden));
-            RefreshFilter(force: true);
+            OnPropertyChanged(nameof(TabIsOnline));
+            OnPropertyChanged(nameof(TabIsActiveRules));
+            OnPropertyChanged(nameof(TabIsTunnel));
+            OnPropertyChanged(nameof(ShowCoolingList));
+            if (!FollowsConnections)
+            {
+                if (Connections.Count > 0)
+                {
+                    Connections.Clear();
+                    _connRows.Clear();
+                }
+                SetFlag(ref _connectionsLoading, false, nameof(ConnectionsLoading));
+            }
+            if (_selectedApp == null || !InTab(_selectedApp, tab))
+                ShowAllListeners();
+            QueueFilter();
         }
 
         private void Toggle(HashSet<string> set, AppRowViewModel row)
@@ -227,12 +311,17 @@ namespace NetDivert.UI
         {
             foreach (var row in Apps)
             {
-                if (row.IsInactive && !_hidden.Contains(row.Key) && !_pinned.Contains(row.Key))
+                if (CanClear(row))
                     _dismissed.Add(row.Key);
             }
             SaveLists();
             RefreshFilter(force: true);
         }
+
+        private bool FollowsConnections => _tab is not AppTab.Offline and not AppTab.Inactive;
+
+        private bool CanClear(AppRowViewModel row) =>
+            !_hidden.Contains(row.Key) && !_pinned.Contains(row.Key) && (row.IsInactive || IsMissingFile(row));
 
         private void SaveLists()
         {
@@ -418,6 +507,8 @@ namespace NetDivert.UI
             _hasBaseline = false;
             OnPropertyChanged(nameof(IsServiceMode));
             OnPropertyChanged(nameof(ModeText));
+            OnPropertyChanged(nameof(ModeTipKey));
+            OnPropertyChanged(nameof(ModeHelpKey));
             OnPropertyChanged(nameof(ServiceStatusText));
         }
 
@@ -525,19 +616,60 @@ namespace NetDivert.UI
 
         private void Tick()
         {
+            var host = _host;
+            if (host == null || Interlocked.Exchange(ref _snapBusy, 1) == 1)
+                return;
+            string? key = FollowsConnections ? _selectedApp?.Key : null;
+            int selectGen = _selectGen;
+            var dispatcher = App.Current?.Dispatcher;
+            if (dispatcher == null)
+            {
+                Interlocked.Exchange(ref _snapBusy, 0);
+                return;
+            }
+            Task.Run(() =>
+            {
+                EngineSnapshot? snap = null;
+                string? error = null;
+                try
+                {
+                    snap = host.GetSnapshot(key);
+                }
+                catch (Exception ex)
+                {
+                    error = ex.Message;
+                }
+                if (dispatcher.HasShutdownStarted)
+                {
+                    Interlocked.Exchange(ref _snapBusy, 0);
+                    return;
+                }
+                dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+                {
+                    try
+                    {
+                        if (!ReferenceEquals(_host, host))
+                            return;
+                        if (error != null)
+                        {
+                            StatusText = IsServiceMode ? "Serviço indisponível: " + error : "Erro: " + error;
+                            return;
+                        }
+                        if (snap != null)
+                            ApplySnapshot(snap, key, selectGen);
+                    }
+                    finally
+                    {
+                        Interlocked.Exchange(ref _snapBusy, 0);
+                    }
+                });
+            });
+        }
+
+        private void ApplySnapshot(EngineSnapshot snap, string? requestedKey, int selectGen)
+        {
             if (_host == null)
                 return;
-
-            EngineSnapshot snap;
-            try
-            {
-                snap = _host.GetSnapshot(_selectedApp?.Key);
-            }
-            catch (Exception ex)
-            {
-                StatusText = IsServiceMode ? "Serviço indisponível: " + ex.Message : "Erro: " + ex.Message;
-                return;
-            }
 
             double seconds = Math.Max(0.001, _clock.Elapsed.TotalSeconds);
             _clock.Restart();
@@ -591,22 +723,206 @@ namespace NetDivert.UI
             TotalUp = "↑ " + u;
             TrayText = _running ? $"{Brand.Product}  ↓ {d}  ↑ {u}" : $"{Brand.Product}";
             GraphTitle = _selectedApp == null ? Loc.Get("graph.total") : Loc.Get("graph.of") + _selectedApp.Name;
-            RefreshListeners(snap.Listeners);
+            if (snap.Listeners != null)
+                RefreshListeners(snap.Listeners);
             StatsText = $"{pps:0} pacotes/s   •   bloqueados: {snap.Blocked:N0}   •   descartados pelo limitador: {snap.Dropped:N0}   •   em fila: {Format.Bytes(snap.Queued)}   •   total ↓ {Format.Bytes(snap.TotalIn)}  ↑ {Format.Bytes(snap.TotalOut)}";
 
             RestoreDismissedOnActivity();
+            MaybeAskOnline();
             ScheduleProcessScan();
             RefreshFilter(force: false);
-            RefreshConnections(snap.Connections, seconds);
+            OnPropertyChanged(nameof(RedirectStatus));
+            OnPropertyChanged(nameof(RedirectButtonText));
+            if (_redirectSeenRunning != _redirector.IsRunning)
+            {
+                _redirectSeenRunning = _redirector.IsRunning;
+                OnPropertyChanged(nameof(RedirectIsRunning));
+            }
+            if (string.Equals(requestedKey, _selectedApp?.Key, StringComparison.OrdinalIgnoreCase))
+            {
+                RefreshConnections(snap.Connections, seconds);
+                if (selectGen == _selectGen)
+                    SetFlag(ref _connectionsLoading, false, nameof(ConnectionsLoading));
+            }
             Refreshed?.Invoke();
             WriteDiagnostics(snap);
+            ScheduleExistsScan();
+        }
+
+        private int _snapBusy;
+        private int _selectGen;
+        private int _filterTicket;
+        private int _existsBusy;
+        private long _existsAt;
+        private long _searchAt;
+        private bool _searchQueued;
+        private bool _appsLoading;
+        private bool _connectionsLoading;
+        private bool _listenFiltered;
+        private int[] _listenPids = Array.Empty<int>();
+        private string? _listenPath;
+        private readonly Dictionary<string, bool> _fileExists = new(StringComparer.OrdinalIgnoreCase);
+        private SecurityPolicy _netPolicy = PolicyStore.Load();
+        private long _netPolicyAt;
+        private bool _asking;
+
+        private void SetFlag(ref bool field, bool value, string property)
+        {
+            if (field == value)
+                return;
+            field = value;
+            OnPropertyChanged(property);
+        }
+
+        private void QueueFilter()
+        {
+            int ticket = ++_filterTicket;
+            SetFlag(ref _appsLoading, true, nameof(AppsLoading));
+            var dispatcher = App.Current?.Dispatcher;
+            if (dispatcher == null)
+                return;
+            dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+            {
+                if (ticket != _filterTicket)
+                    return;
+                RefreshFilter(force: true);
+                SetFlag(ref _appsLoading, false, nameof(AppsLoading));
+            });
+        }
+
+        private void QueueSearch()
+        {
+            _searchAt = Environment.TickCount64;
+            if (_searchQueued)
+                return;
+            _searchQueued = true;
+            App.Current?.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(ApplyQueuedSearch));
+        }
+
+        private void ApplyQueuedSearch()
+        {
+            if (Environment.TickCount64 - _searchAt < 160)
+            {
+                App.Current?.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(ApplyQueuedSearch));
+                return;
+            }
+            _searchQueued = false;
+            RefreshFilter(force: true);
+        }
+
+        private void ScheduleExistsScan()
+        {
+            long now = Environment.TickCount64;
+            if (now - _existsAt < 20000 || Interlocked.Exchange(ref _existsBusy, 1) == 1)
+                return;
+            _existsAt = now;
+            var paths = new List<string>();
+            foreach (var row in Apps)
+            {
+                if (!string.IsNullOrEmpty(row.ExePath))
+                    paths.Add(row.ExePath!);
+            }
+            Task.Run(() =>
+            {
+                var map = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+                foreach (string path in paths)
+                {
+                    if (map.ContainsKey(path))
+                        continue;
+                    try { map[path] = File.Exists(path); }
+                    catch { map[path] = true; }
+                }
+                var dispatcher = App.Current?.Dispatcher;
+                if (dispatcher == null || dispatcher.HasShutdownStarted)
+                {
+                    Interlocked.Exchange(ref _existsBusy, 0);
+                    return;
+                }
+                dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+                {
+                    _fileExists.Clear();
+                    foreach (var kv in map)
+                        _fileExists[kv.Key] = kv.Value;
+                    Interlocked.Exchange(ref _existsBusy, 0);
+                    RefreshFilter(force: false);
+                });
+            });
+        }
+
+        private void MaybeAskOnline()
+        {
+            long now = Environment.TickCount64;
+            if (now - _netPolicyAt > 2000)
+            {
+                _netPolicyAt = now;
+                try { _netPolicy = PolicyStore.Load(); } catch { }
+            }
+            if (_asking || _netPolicy.NetMode != 2)
+                return;
+            var row = Apps.FirstOrDefault(a => a.SeenByNetwork && !a.DecidedOnline && !_settings.AskedOnline.Contains(a.Key)
+                && !a.BlockIn && !a.BlockOut && a.IdleMs < 4000 && !a.Key.StartsWith('?'));
+            if (row == null)
+                return;
+            _asking = true;
+            var target = row;
+            System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    bool? allow = AskOnline(target.Name);
+                    if (allow.HasValue)
+                    {
+                        target.DecideOnline(allow.Value);
+                        if (!_settings.AskedOnline.Contains(target.Key))
+                            _settings.AskedOnline.Add(target.Key);
+                        _settings.Save();
+                    }
+                }
+                finally
+                {
+                    _asking = false;
+                }
+            }));
+        }
+
+        private static bool? AskOnline(string name)
+        {
+            bool? allow = null;
+            var yes = new System.Windows.Controls.Button { Content = Loc.Get("ask.allow"), Width = 110, Margin = new System.Windows.Thickness(0, 14, 8, 0), IsDefault = true };
+            var no = new System.Windows.Controls.Button { Content = Loc.Get("ask.deny"), Width = 110, Margin = new System.Windows.Thickness(0, 14, 0, 0) };
+            var buttons = new System.Windows.Controls.StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Right };
+            buttons.Children.Add(yes);
+            buttons.Children.Add(no);
+            var panel = new System.Windows.Controls.StackPanel { Margin = new System.Windows.Thickness(16) };
+            panel.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = string.Format(Loc.Get("ask.online"), name),
+                TextWrapping = System.Windows.TextWrapping.Wrap,
+                Foreground = (System.Windows.Media.Brush)System.Windows.Application.Current.Resources["FgBrush"],
+            });
+            panel.Children.Add(buttons);
+            var dialog = new System.Windows.Window
+            {
+                Title = Loc.Get("ask.title"),
+                Width = 460,
+                SizeToContent = System.Windows.SizeToContent.Height,
+                WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen,
+                ResizeMode = System.Windows.ResizeMode.NoResize,
+                Topmost = true,
+                Background = (System.Windows.Media.Brush)System.Windows.Application.Current.Resources["PanelBrush"],
+                Content = panel,
+            };
+            yes.Click += (_, _) => { allow = true; dialog.DialogResult = true; };
+            no.Click += (_, _) => { allow = false; dialog.DialogResult = true; };
+            dialog.ShowDialog();
+            return allow;
         }
 
         private string? HighlightFor(AppRowViewModel row, bool pinned)
         {
-            string? path = row.ExePath;
-            if (path != null && !System.IO.File.Exists(path))
+            if (IsMissingFile(row))
                 return _settings.ColorMissing;
+            string? path = row.ExePath;
             if (row.HasRule)
                 return _settings.ColorSpecial;
             if ((path != null && path.Contains("wsl", StringComparison.OrdinalIgnoreCase)) || row.Name.Contains("wsl", StringComparison.OrdinalIgnoreCase))
@@ -623,6 +939,14 @@ namespace NetDivert.UI
             return null;
         }
 
+        private bool IsMissingFile(AppRowViewModel row)
+        {
+            if (row.BriefExit)
+                return true;
+            string? path = row.ExePath;
+            return path != null && _fileExists.TryGetValue(path, out bool exists) && !exists;
+        }
+
         private bool InTab(AppRowViewModel row, AppTab tab)
         {
             bool hidden = _hidden.Contains(row.Key);
@@ -635,6 +959,9 @@ namespace NetDivert.UI
                 AppTab.Inactive => !hidden && !dismissed && row.IsInactive,
                 AppTab.Favorites => !hidden && favorite,
                 AppTab.Hidden => hidden,
+                AppTab.Online => !hidden && !dismissed && row.IsOnline,
+                AppTab.ActiveRules => !hidden && (row.IsActiveRule || RedirectMatches(row)),
+                AppTab.Tunnel => !hidden && (row.IsTunnel || RedirectMatches(row)),
                 _ => false,
             };
         }
@@ -642,8 +969,9 @@ namespace NetDivert.UI
         private void RefreshFilter(bool force)
         {
             bool changed = force;
+            bool coolChanged = force;
             string search = _searchText.Trim();
-            int all = 0, offline = 0, inactive = 0, favorites = 0, hidden = 0;
+            int all = 0, offline = 0, inactive = 0, clearable = 0, favorites = 0, hidden = 0, online = 0, active = 0, tunnel = 0;
             foreach (var row in Apps)
             {
                 bool isHidden = _hidden.Contains(row.Key);
@@ -654,26 +982,37 @@ namespace NetDivert.UI
                 if (InTab(row, AppTab.All)) all++;
                 if (InTab(row, AppTab.Offline)) offline++;
                 if (InTab(row, AppTab.Inactive)) inactive++;
+                if (CanClear(row)) clearable++;
                 if (InTab(row, AppTab.Favorites)) favorites++;
                 if (InTab(row, AppTab.Hidden)) hidden++;
+                if (InTab(row, AppTab.Online)) online++;
+                if (InTab(row, AppTab.ActiveRules)) active++;
+                if (InTab(row, AppTab.Tunnel)) tunnel++;
 
                 bool matches = search.Length == 0
                     || row.Name.Contains(search, StringComparison.OrdinalIgnoreCase)
                     || row.Path.Contains(search, StringComparison.OrdinalIgnoreCase);
-                bool show = InTab(row, _tab) && matches;
+                bool inThisTab = InTab(row, _tab);
+                bool cooling = _tab == AppTab.Online && row.IsCooling && inThisTab && matches;
+                bool show = inThisTab && matches && !cooling;
                 changed |= show ? _visible.Add(row) : _visible.Remove(row);
+                coolChanged |= cooling ? _cooling.Add(row) : _cooling.Remove(row);
             }
             if (changed)
                 _appsView.Refresh();
+            if (coolChanged)
+                _coolingView.Refresh();
             SetCount(ref _nAll, all, nameof(TabAllText));
             SetCount(ref _nOffline, offline, nameof(TabOfflineText));
             if (SetCount(ref _nInactive, inactive, nameof(TabInactiveText)))
-            {
                 OnPropertyChanged(nameof(ClearInactiveText));
+            if (SetCount(ref _nClearable, clearable, nameof(ClearInactiveText)))
                 CommandManager.InvalidateRequerySuggested();
-            }
             SetCount(ref _nFavorites, favorites, nameof(TabFavoritesText));
             SetCount(ref _nHidden, hidden, nameof(TabHiddenText));
+            SetCount(ref _nOnline, online, nameof(TabOnlineText));
+            SetCount(ref _nActive, active, nameof(TabActiveText));
+            SetCount(ref _nTunnel, tunnel, nameof(TabTunnelText));
         }
 
         private bool SetCount(ref int field, int value, string property)
@@ -690,7 +1029,7 @@ namespace NetDivert.UI
             bool restored = false;
             foreach (var row in Apps)
             {
-                if (_dismissed.Contains(row.Key) && row.SeenByNetwork && row.IdleMs < 3000)
+                if (_dismissed.Contains(row.Key) && row.SeenByNetwork && row.IdleMs < 3000 && !row.HeldDismissed)
                 {
                     _dismissed.Remove(row.Key);
                     restored = true;
@@ -864,6 +1203,9 @@ namespace NetDivert.UI
                 _rows.Remove(row.Key);
                 _visible.Remove(row);
             }
+            var runningKeys = running;
+            foreach (var row in Apps)
+                row.NoteProcess(runningKeys.Contains(row.Key));
             RefreshFilter(force: true);
         }
 
@@ -876,6 +1218,50 @@ namespace NetDivert.UI
             foreach (var item in found)
                 if (have.Add(item.Id))
                     Listeners.Add(item);
+        }
+
+        public void ShowListeners(AppRowViewModel row)
+        {
+            if (_listenFiltered && SameListeners(row))
+                return;
+            _listenPids = (int[])row.ProcessIds.Clone();
+            _listenPath = row.ExePath;
+            _listenFiltered = true;
+            _listenerView.Refresh();
+        }
+
+        public void ShowAllListeners()
+        {
+            if (!_listenFiltered)
+                return;
+            _listenFiltered = false;
+            _listenPids = Array.Empty<int>();
+            _listenPath = null;
+            _listenerView.Refresh();
+        }
+
+        private bool SameListeners(AppRowViewModel row)
+        {
+            if (!string.Equals(_listenPath, row.ExePath, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (_listenPids.Length != row.ProcessIds.Length)
+                return false;
+            for (int i = 0; i < _listenPids.Length; i++)
+                if (_listenPids[i] != row.ProcessIds[i])
+                    return false;
+            return true;
+        }
+
+        private bool MatchListener(object item)
+        {
+            if (!_listenFiltered || item is not ListenerSnapshot listener)
+                return true;
+            if (!string.IsNullOrEmpty(_listenPath) && string.Equals(listener.Path, _listenPath, StringComparison.OrdinalIgnoreCase))
+                return true;
+            for (int i = 0; i < _listenPids.Length; i++)
+                if (_listenPids[i] == listener.Pid)
+                    return true;
+            return false;
         }
 
         private void RefreshConnections(List<ConnSnapshot> conns, double seconds)
@@ -919,9 +1305,328 @@ namespace NetDivert.UI
             try { System.IO.File.AppendAllText(LogPath, sb.ToString()); } catch { }
         }
 
+        public ObservableCollection<string> RedirectPatterns { get; } = new();
+        public string RedirectIp { get => _redirect.SocksIp; set { _redirect.SocksIp = value; OnPropertyChanged(); SaveRedirect(); } }
+        public int RedirectPort { get => _redirect.SocksPort; set { _redirect.SocksPort = value; OnPropertyChanged(); SaveRedirect(); } }
+        public string RedirectProtocol { get => _redirect.Protocol; set { _redirect.Protocol = value; OnPropertyChanged(); SaveRedirect(); } }
+        public bool RedirectChrome { get => _redirect.ChromeAssist; set { _redirect.ChromeAssist = value; OnPropertyChanged(); SaveRedirect(); } }
+        public bool RedirectLog { get => _redirect.LogToFile; set { _redirect.LogToFile = value; OnPropertyChanged(); SaveRedirect(); } }
+        public bool RedirectAutoStart { get => _redirect.StartWithApp; set { _redirect.StartWithApp = value; OnPropertyChanged(); SaveRedirect(); } }
+        public bool RedirectIsRunning => _redirector.IsRunning;
+        public string RedirectStatus => _redirectError ?? _redirector.Error ?? (_redirector.IsRunning ? Loc.Get("redir.on") : Loc.Get("redir.off"));
+        public string RedirectButtonText => _redirector.IsRunning ? Loc.Get("redir.stop") : Loc.Get("redir.start");
+
+        public void AddRedirectPattern(string pattern)
+        {
+            pattern = pattern.Trim();
+            if (pattern.Length == 0 || RedirectPatterns.Contains(pattern))
+                return;
+            RedirectPatterns.Add(pattern);
+            SaveRedirect();
+            RefreshFilter(force: true);
+        }
+
+        public void RemoveRedirectPattern(string? pattern)
+        {
+            if (pattern == null)
+                return;
+            RedirectPatterns.Remove(pattern);
+            SaveRedirect();
+            RefreshFilter(force: true);
+        }
+
+        private string? _redirectError;
+        private bool _redirectSeenRunning;
+
+        public void ToggleRedirect()
+        {
+            _redirectError = null;
+            if (_redirector.IsRunning)
+            {
+                _redirector.Stop();
+                _redirect.Running = false;
+            }
+            else
+            {
+                try
+                {
+                    _redirector.Start(_redirect);
+                    _redirect.Running = true;
+                }
+                catch (Exception ex)
+                {
+                    _redirectError = ex.Message;
+                    _redirect.Running = false;
+                }
+            }
+            SaveRedirect();
+            OnPropertyChanged(nameof(RedirectStatus));
+            OnPropertyChanged(nameof(RedirectButtonText));
+            OnPropertyChanged(nameof(RedirectIsRunning));
+        }
+
+        public void StopRedirect()
+        {
+            _redirector.Stop();
+            if (_redirect.Running)
+            {
+                _redirect.Running = false;
+                SaveRedirect();
+            }
+            OnPropertyChanged(nameof(RedirectIsRunning));
+        }
+
+        private void SaveRedirect()
+        {
+            _redirect.Patterns = RedirectPatterns.ToList();
+            try { RedirectStore.Save(_redirect); } catch { }
+        }
+
+        private bool RedirectMatches(AppRowViewModel row) =>
+            _redirect.Patterns.Count > 0 && DipWd.Wildcard.MatchesAny(row.Path, _redirect.Patterns);
+
+        private static readonly HashSet<string> ProtectedProcesses = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "system", "registry", "idle", "smss", "csrss", "wininit", "services", "lsass", "winlogon",
+            "secure system", "memory compression",
+        };
+
+        private void CloseConnections(AppRowViewModel? row)
+        {
+            if (row == null)
+                return;
+            if (row.ProcessIds.Length == 0)
+            {
+                StatusText = string.Format(Loc.Get("menu.conns.none"), row.Name);
+                return;
+            }
+            if (System.Windows.MessageBox.Show(string.Format(Loc.Get("menu.conns.ask"), row.Name), Loc.Get("app"),
+                    System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question) != System.Windows.MessageBoxResult.Yes)
+                return;
+            var pids = (int[])row.ProcessIds.Clone();
+            string name = row.Name;
+            Task.Run(() =>
+            {
+                int closed = TcpCloser.Close(pids);
+                var dispatcher = App.Current?.Dispatcher;
+                if (dispatcher == null || dispatcher.HasShutdownStarted)
+                    return;
+                dispatcher.BeginInvoke(() =>
+                {
+                    StatusText = closed == 0
+                        ? string.Format(Loc.Get("menu.conns.none"), name)
+                        : string.Format(Loc.Get("menu.conns.done"), closed, name);
+                });
+            });
+        }
+
+        private void ForceStop(AppRowViewModel? row)
+        {
+            if (row == null)
+                return;
+            if (row.ProcessIds.Length == 0)
+            {
+                StatusText = string.Format(Loc.Get("menu.kill.none"), row.Name);
+                return;
+            }
+            if (IsProtectedProcess(row.Name) || IsProtectedProcess(row.ExePath))
+            {
+                System.Windows.MessageBox.Show(string.Format(Loc.Get("menu.kill.protected"), row.Name), Loc.Get("app"),
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
+            if (System.Windows.MessageBox.Show(string.Format(Loc.Get("menu.kill.ask"), row.Name), Loc.Get("app"),
+                    System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning) != System.Windows.MessageBoxResult.Yes)
+                return;
+            Win32.TryEnableDebugPrivilege();
+            int stopped = 0, failed = 0;
+            foreach (int pid in row.ProcessIds)
+            {
+                if (pid <= 4 || pid == Environment.ProcessId)
+                {
+                    failed++;
+                    continue;
+                }
+                try
+                {
+                    using var process = Process.GetProcessById(pid);
+                    if (IsProtectedProcess(process.ProcessName))
+                    {
+                        failed++;
+                        continue;
+                    }
+                    process.Kill(entireProcessTree: true);
+                    stopped++;
+                }
+                catch
+                {
+                    if (TerminatePid(pid))
+                        stopped++;
+                    else
+                        failed++;
+                }
+            }
+            StatusText = failed == 0
+                ? string.Format(Loc.Get("menu.kill.done"), row.Name)
+                : string.Format(Loc.Get("menu.kill.partial"), row.Name, stopped, failed);
+            if (stopped > 0)
+            {
+                row.HoldDismissed();
+                _dismissed.Add(row.Key);
+                if (SelectedApp == row)
+                    SelectedApp = null;
+                SaveLists();
+                RefreshFilter(force: true);
+            }
+        }
+
+        private static bool IsProtectedProcess(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return false;
+            string file = System.IO.Path.GetFileNameWithoutExtension(name);
+            return ProtectedProcesses.Contains(name) || ProtectedProcesses.Contains(file);
+        }
+
+        private static bool TerminatePid(int pid)
+        {
+            IntPtr handle = Win32.OpenProcess(Win32.PROCESS_TERMINATE, false, pid);
+            if (handle == IntPtr.Zero)
+                return false;
+            try
+            {
+                return Win32.TerminateProcess(handle, 1);
+            }
+            finally
+            {
+                Win32.CloseHandle(handle);
+            }
+        }
+
+        public string ExportBackupJson()
+        {
+            var rules = new RuleStore();
+            rules.Load();
+            return SettingsBackup.Export(_settings, PolicyStore.Load(), rules.Data, _redirect);
+        }
+
+        public void ImportBackup(string json)
+        {
+            var bundle = SettingsBackup.Import(json);
+            if (bundle.Ui != null)
+            {
+                _settings.CopyFrom(bundle.Ui);
+                _settings.Save();
+                Format.Unit = _settings.Unit;
+                Loc.SetLanguage(_settings.Language);
+                Theme.Apply(_settings.Theme);
+                ReplaceSet(_favorites, _settings.Favorites);
+                ReplaceSet(_hidden, _settings.Hidden);
+                ReplaceSet(_dismissed, _settings.Dismissed);
+                ReplaceSet(_pinned, _settings.Pinned);
+                RefreshFilter(force: true);
+                OnPropertyChanged(string.Empty);
+                UnitChanged?.Invoke();
+            }
+            if (bundle.Policy != null)
+                PolicyStore.Save(bundle.Policy);
+            if (bundle.Rules != null)
+                ReplaceRules(bundle.Rules);
+            if (bundle.Redirect != null)
+                ReplaceRedirect(bundle.Redirect);
+        }
+
+        private static void ReplaceSet(HashSet<string> target, List<string>? values)
+        {
+            target.Clear();
+            if (values == null)
+                return;
+            foreach (string value in values)
+                target.Add(value);
+        }
+
+        private void ReplaceRules(RuleSet incoming)
+        {
+            if (_host == null)
+                return;
+            var current = new RuleStore();
+            current.Load();
+            var keep = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var rule in incoming.Apps)
+                keep.Add(rule.Key);
+            foreach (var old in current.Data.Apps)
+            {
+                if (!keep.Contains(old.Key))
+                    _host.SetRule(new AppRule { Key = old.Key });
+            }
+            foreach (var rule in incoming.Apps)
+                _host.SetRule(rule);
+            _host.SetGlobal(incoming.Global ?? new AppRule { Key = "*" });
+        }
+
+        private void ReplaceRedirect(RedirectSettings incoming)
+        {
+            bool wasRunning = _redirector.IsRunning;
+            if (wasRunning)
+                _redirector.Stop();
+            _redirect.SocksIp = string.IsNullOrWhiteSpace(incoming.SocksIp) ? _redirect.SocksIp : incoming.SocksIp;
+            _redirect.SocksPort = incoming.SocksPort > 0 ? incoming.SocksPort : _redirect.SocksPort;
+            _redirect.Protocol = string.IsNullOrWhiteSpace(incoming.Protocol) ? _redirect.Protocol : incoming.Protocol;
+            _redirect.ChromeAssist = incoming.ChromeAssist;
+            _redirect.LogToFile = incoming.LogToFile;
+            _redirect.StartWithApp = incoming.StartWithApp;
+            RedirectPatterns.Clear();
+            if (incoming.Patterns != null)
+            {
+                foreach (string pattern in incoming.Patterns)
+                    if (!string.IsNullOrWhiteSpace(pattern))
+                        RedirectPatterns.Add(pattern.Trim());
+            }
+            _redirect.Running = false;
+            SaveRedirect();
+            OnPropertyChanged(nameof(RedirectIp));
+            OnPropertyChanged(nameof(RedirectPort));
+            OnPropertyChanged(nameof(RedirectProtocol));
+            OnPropertyChanged(nameof(RedirectChrome));
+            OnPropertyChanged(nameof(RedirectLog));
+            OnPropertyChanged(nameof(RedirectAutoStart));
+            if (wasRunning && RedirectPatterns.Count > 0)
+            {
+                try { _redirector.Start(_redirect); _redirect.Running = true; }
+                catch (Exception ex) { _redirectError = ex.Message; }
+                SaveRedirect();
+            }
+            OnPropertyChanged(nameof(RedirectStatus));
+            OnPropertyChanged(nameof(RedirectButtonText));
+            OnPropertyChanged(nameof(RedirectIsRunning));
+            RefreshFilter(force: true);
+        }
+
+        private void OpenSettings()
+        {
+            if (_settingsWindow != null)
+            {
+                _settingsWindow.Activate();
+                return;
+            }
+            _settingsWindow = new SettingsWindow { Owner = System.Windows.Application.Current.MainWindow };
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow.Show();
+        }
+
         public void Dispose()
         {
             _timer.Stop();
+            try
+            {
+                _redirector.Dispose();
+                if (_redirect.Running)
+                {
+                    _redirect.Running = false;
+                    SaveRedirect();
+                }
+            }
+            catch { }
             try { _host?.Dispose(); }
             catch (Exception) { }
             _host = null;

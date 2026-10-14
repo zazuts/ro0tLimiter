@@ -145,6 +145,25 @@ namespace NetDivert.Core
             return result;
         }
 
+        public static int RemoveCreated()
+        {
+            dynamic rules = Rules();
+            int count = (int)rules.Count;
+            var doomed = new List<string>();
+            for (int i = 1; i <= count; i++)
+            {
+                dynamic rule = rules.Item(i);
+                string name = (string)rule.Name;
+                if (name.StartsWith(Prefix, StringComparison.Ordinal))
+                    doomed.Add(name);
+            }
+            foreach (var name in doomed)
+            {
+                try { rules.Remove(name); } catch { }
+            }
+            return doomed.Count;
+        }
+
         private static dynamic Rules()
         {
             dynamic policy = Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwPolicy2")!)

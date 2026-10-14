@@ -21,6 +21,9 @@ namespace NetDivert.Core
         /// <summary>Used only while "bloquear tudo" is enabled: this app is allowed through.</summary>
         public bool AllowOut { get; set; }
         public bool AllowIn { get; set; }
+
+        /// <summary>The user already answered the "always ask" prompt for this program.</summary>
+        public bool DecidedOnline { get; set; }
         public List<AdapterRule> Adapters { get; set; } = new();
 
         [JsonIgnore]
@@ -50,6 +53,7 @@ namespace NetDivert.Core
             LimitUpKBps = Math.Max(1, other.LimitUpKBps);
             AllowOut = other.AllowOut;
             AllowIn = other.AllowIn;
+            DecidedOnline = other.DecidedOnline;
             Adapters = other.Adapters.ConvertAll(a => a.Clone());
         }
 
@@ -58,6 +62,7 @@ namespace NetDivert.Core
             LimitDownEnabled == o.LimitDownEnabled && LimitDownKBps == o.LimitDownKBps &&
             LimitUpEnabled == o.LimitUpEnabled && LimitUpKBps == o.LimitUpKBps &&
             AllowOut == o.AllowOut && AllowIn == o.AllowIn &&
+            DecidedOnline == o.DecidedOnline &&
             SameAdapters(o);
 
         private bool SameAdapters(AppRule o)
@@ -82,8 +87,11 @@ namespace NetDivert.Core
         public bool LimitUpEnabled { get; set; }
         public int LimitUpKBps { get; set; } = 50;
 
+        /// <summary>When set, this program may use the network only through this adapter.</summary>
+        public bool Exclusive { get; set; }
+
         [JsonIgnore]
-        public bool IsDefault => !BlockIn && !BlockOut && !LimitDownEnabled && !LimitUpEnabled;
+        public bool IsDefault => !BlockIn && !BlockOut && !LimitDownEnabled && !LimitUpEnabled && !Exclusive;
 
         [JsonIgnore]
         public long DownBytesPerSecond => LimitDownEnabled ? Math.Max(1, LimitDownKBps) * 1024L : 0;
@@ -97,7 +105,8 @@ namespace NetDivert.Core
             string.Equals(AdapterId, o.AdapterId, StringComparison.OrdinalIgnoreCase) &&
             BlockIn == o.BlockIn && BlockOut == o.BlockOut &&
             LimitDownEnabled == o.LimitDownEnabled && LimitDownKBps == o.LimitDownKBps &&
-            LimitUpEnabled == o.LimitUpEnabled && LimitUpKBps == o.LimitUpKBps;
+            LimitUpEnabled == o.LimitUpEnabled && LimitUpKBps == o.LimitUpKBps &&
+            Exclusive == o.Exclusive;
     }
 
     public sealed class RuleSet

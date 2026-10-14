@@ -16,6 +16,9 @@ namespace NetDivert.Core
     {
         public bool BlockAllOutbound { get; set; }
         public bool BlockAllInbound { get; set; }
+
+        /// <summary>0 = allow everything, 1 = block everything not allowed, 2 = ask for each program.</summary>
+        public int NetMode { get; set; }
         public bool AllowLoopback { get; set; } = true;
         public bool Allow6to4 { get; set; } = true;
         public bool Stealth { get; set; }
@@ -26,7 +29,7 @@ namespace NetDivert.Core
         public bool IgnoreUacNoise { get; set; } = true;
 
         /// <summary>0 = off, 1 = always allow, 2 = block.</summary>
-        public int Telemetry { get; set; } = 2;
+        public int Telemetry { get; set; }
         public int Updates { get; set; }
         public int MicrosoftApps { get; set; }
 
@@ -35,12 +38,18 @@ namespace NetDivert.Core
         public string BlockedIps { get; set; } = "";
         public string BlockedPorts { get; set; } = "";
         public string BlockedExes { get; set; } = "";
+        public string BlockedLocalPorts { get; set; } = "";
+        public string BlockedLocalIps { get; set; } = "";
+        public bool AllowOneDrive { get; set; }
         public string RegexRules { get; set; } = "";
         public string ListUrls { get; set; } = "";
 
         public bool LogDrops { get; set; }
         public bool LogConnections { get; set; }
         public bool LogDebug { get; set; }
+
+        /// <summary>0 off, 1 day, 2 week, 3 month, 4 half year, 5 year.</summary>
+        public int LogRotate { get; set; }
 
         /// <summary>0 = keep a small config file, 1 = delete everything.</summary>
         public int UninstallMode { get; set; }
@@ -56,7 +65,12 @@ namespace NetDivert.Core
             try
             {
                 if (File.Exists(FilePath))
-                    return JsonSerializer.Deserialize<SecurityPolicy>(File.ReadAllText(FilePath)) ?? new SecurityPolicy();
+                {
+                    var loaded = JsonSerializer.Deserialize<SecurityPolicy>(File.ReadAllText(FilePath)) ?? new SecurityPolicy();
+                    if (loaded.NetMode == 0 && (loaded.BlockAllOutbound || loaded.BlockAllInbound))
+                        loaded.NetMode = 1;
+                    return loaded;
+                }
             }
             catch
             {
@@ -83,6 +97,9 @@ namespace NetDivert.Core
         private readonly HashSet<string> _blockDomains;
         private readonly HashSet<string> _allowDomains;
         private readonly HashSet<int> _ports;
+        private readonly HashSet<int> _localPorts;
+        private readonly HashSet<string> _localIps = new(StringComparer.OrdinalIgnoreCase);
+        private readonly List<(uint network, uint mask)> _localCidrs = new();
         private readonly HashSet<string> _exes;
         private readonly List<(uint network, uint mask)> _cidrs = new();
         private readonly HashSet<string> _ips = new(StringComparer.OrdinalIgnoreCase);
@@ -105,14 +122,22 @@ namespace NetDivert.Core
             AddGroup(policy.Telemetry, BuiltInLists.Telemetry);
             AddGroup(policy.Updates, BuiltInLists.Updates);
             AddGroup(policy.MicrosoftApps, BuiltInLists.MicrosoftApps);
+            if (policy.AllowOneDrive)
+                foreach (var d in BuiltInLists.OneDrive)
+                    _allowDomains.Add(d);
 
             _ports = new HashSet<int>();
             foreach (var line in Split(policy.BlockedPorts))
                 if (int.TryParse(line, out int port) && port is > 0 and <= 65535)
                     _ports.Add(port);
+            _localPorts = new HashSet<int>();
+            foreach (var line in Split(policy.BlockedLocalPorts))
+                if (int.TryParse(line, out int local) && local is > 0 and <= 65535)
+                    _localPorts.Add(local);
+            ParseAddressList(policy.BlockedLocalIps, _localIps, _localCidrs);
 
             _exes = new HashSet<string>(Split(policy.BlockedExes), StringComparer.OrdinalIgnoreCase);
-            ParseIps(policy.BlockedIps);
+            ParseAddressList(policy.BlockedIps, _ips, _cidrs);
 
             var block = new List<Regex>();
             var allow = new List<Regex>();
@@ -146,7 +171,7 @@ namespace NetDivert.Core
                     _allowDomains.Add(d);
         }
 
-        public string? Reason(string? domain, string ip, int remotePort, string? exe, string appName)
+        public string? Reason(string? domain, string ip, int remotePort, string localIp, int localPort, string? exe, string appName)
         {
             if (domain != null && IsListed(_allowDomains, domain))
                 return null;
@@ -159,6 +184,10 @@ namespace NetDivert.Core
                 return "ip " + ip;
             if (remotePort != 0 && _ports.Contains(remotePort))
                 return "port " + remotePort;
+            if (localPort != 0 && _localPorts.Contains(localPort))
+                return "local-port " + localPort;
+            if (_localIps.Contains(localIp) || InLocalCidr(localIp))
+                return "local-ip " + localIp;
             if (exe != null && ExeBlocked(exe))
                 return "exe " + Path.GetFileName(exe);
             if (Matches(_blockRegex, domain, ip, exe, appName))
@@ -210,14 +239,14 @@ namespace NetDivert.Core
             return false;
         }
 
-        private void ParseIps(string text)
+        private static void ParseAddressList(string text, HashSet<string> ips, List<(uint network, uint mask)> cidrs)
         {
             foreach (var line in Split(text))
             {
                 int slash = line.IndexOf('/');
                 if (slash < 0)
                 {
-                    _ips.Add(line);
+                    ips.Add(line);
                     continue;
                 }
                 if (IPAddress.TryParse(line[..slash], out var addr) && addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
@@ -225,17 +254,20 @@ namespace NetDivert.Core
                 {
                     uint ip = ToUInt(addr);
                     uint mask = bits == 0 ? 0 : 0xFFFFFFFFu << (32 - bits);
-                    _cidrs.Add((ip & mask, mask));
+                    cidrs.Add((ip & mask, mask));
                 }
             }
         }
 
-        private bool InCidr(string ip)
+        private bool InCidr(string ip) => InCidr(ip, _cidrs);
+        private bool InLocalCidr(string ip) => InCidr(ip, _localCidrs);
+
+        private static bool InCidr(string ip, List<(uint network, uint mask)> cidrs)
         {
-            if (_cidrs.Count == 0 || !IPAddress.TryParse(ip, out var addr) || addr.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+            if (cidrs.Count == 0 || !IPAddress.TryParse(ip, out var addr) || addr.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
                 return false;
             uint value = ToUInt(addr);
-            foreach (var (network, mask) in _cidrs)
+            foreach (var (network, mask) in cidrs)
                 if ((value & mask) == network)
                     return true;
             return false;
@@ -281,7 +313,14 @@ namespace NetDivert.Core
 
         public static readonly string[] MicrosoftApps =
         {
-            "skype.com", "bing.com", "outlook.office.com", "outlook.office365.com", "officeapps.live.com",
+            "teams.microsoft.com", "teams.live.com", "teams.office.com", "teams.cloud.microsoft",
+            "bing.com", "outlook.office.com", "outlook.office365.com", "officeapps.live.com",
+            "onedrive.live.com", "onedrive.com", "storage.live.com",
+        };
+
+        public static readonly string[] OneDrive =
+        {
+            "onedrive.live.com", "onedrive.com", "storage.live.com",
         };
     }
 
@@ -289,7 +328,7 @@ namespace NetDivert.Core
     {
         private static readonly ConcurrentDictionary<string, string> IpToDomain = new(StringComparer.OrdinalIgnoreCase);
         private static PolicySnapshot _current = PolicySnapshot.Empty;
-        private static long _loadedTicks;
+        private static DateTime _policyWriteUtc;
         private static int _downloading;
 
         public static PolicySnapshot Current => _current;
@@ -298,14 +337,17 @@ namespace NetDivert.Core
         {
             var policy = PolicyStore.Load();
             _current = new PolicySnapshot(policy, ReadCachedLists(policy));
-            _loadedTicks = Environment.TickCount64;
+            try { _policyWriteUtc = File.GetLastWriteTimeUtc(PolicyStore.FilePath); }
+            catch { _policyWriteUtc = DateTime.UtcNow; }
             RefreshListsInBackground(policy);
-            TrafficLog.Debug("política recarregada");
         }
 
         public static void ReloadIfStale()
         {
-            if (Environment.TickCount64 - _loadedTicks > 2000)
+            DateTime stamp;
+            try { stamp = File.GetLastWriteTimeUtc(PolicyStore.FilePath); }
+            catch { return; }
+            if (stamp != _policyWriteUtc)
                 Reload();
         }
 
@@ -322,7 +364,9 @@ namespace NetDivert.Core
                 return "6to4";
 
             string ip = (outbound ? meta.Dst : meta.Src).ToString();
+            string localIp = (outbound ? meta.Src : meta.Dst).ToString();
             int remotePort = meta.HasPorts ? (outbound ? meta.DstPort : meta.SrcPort) : 0;
+            int localPort = meta.HasPorts ? (outbound ? meta.SrcPort : meta.DstPort) : 0;
             string? domain = null;
 
             if (meta.Protocol == PacketParser.Udp && meta.HasPorts && (meta.DstPort == 53 || meta.SrcPort == 53))
@@ -334,7 +378,7 @@ namespace NetDivert.Core
             if (domain == null && IpToDomain.TryGetValue(ip, out var learned))
                 domain = learned;
 
-            string? reason = snap.Reason(domain, ip, remotePort, exe, appName);
+            string? reason = snap.Reason(domain, ip, remotePort, localIp, localPort, exe, appName);
             if (reason != null)
                 return reason;
 

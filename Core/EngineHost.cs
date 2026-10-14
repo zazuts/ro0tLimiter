@@ -18,6 +18,7 @@ namespace NetDivert.Core
         public long IdleMs { get; set; }
         public int Connections { get; set; }
         public AppRule Rule { get; set; } = new();
+        public bool Ruled { get; set; }
     }
 
     public sealed class ConnSnapshot
@@ -47,7 +48,7 @@ namespace NetDivert.Core
         public AppRule Global { get; set; } = new();
         public List<AppSnapshot> Apps { get; set; } = new();
         public List<ConnSnapshot> Connections { get; set; } = new();
-        public List<ListenerSnapshot> Listeners { get; set; } = new();
+        public List<ListenerSnapshot>? Listeners { get; set; }
     }
 
     /// <summary>What the UI talks to: either an in-process engine or the Windows service.</summary>
@@ -67,6 +68,8 @@ namespace NetDivert.Core
         private readonly object _lock = new();
         private readonly RuleStore _rules;
         private string? _error;
+        private List<ListenerSnapshot>? _listeners;
+        private long _listenersAt;
 
         public LocalEngineHost()
         {
@@ -125,6 +128,15 @@ namespace NetDivert.Core
             }
         }
 
+        private List<ListenerSnapshot>? TakeListeners(long now)
+        {
+            if (_listeners != null && now - _listenersAt < 8000)
+                return null;
+            _listeners = ListenerQuery.Query();
+            _listenersAt = now;
+            return _listeners;
+        }
+
         public EngineSnapshot GetSnapshot(string? connectionsForKey)
         {
             long now = Environment.TickCount64;
@@ -138,7 +150,8 @@ namespace NetDivert.Core
                     connCounts.TryGetValue(c.App, out int n);
                     connCounts[c.App] = n + 1;
                 }
-                if (connectionsForKey != null && string.Equals(c.App.Key, connectionsForKey, StringComparison.OrdinalIgnoreCase))
+                if (open && selected.Count < 400 && connectionsForKey != null
+                    && string.Equals(c.App.Key, connectionsForKey, StringComparison.OrdinalIgnoreCase))
                     selected.Add(c);
             }
 
@@ -153,7 +166,7 @@ namespace NetDivert.Core
                 Dropped = Engine.Dropped,
                 Queued = Engine.QueuedBytes,
                 Global = _rules.Data.Global.Clone(),
-                Listeners = ListenerQuery.Query(),
+                Listeners = TakeListeners(now),
             };
 
             foreach (var app in Engine.Resolver.Apps.Values)
@@ -172,6 +185,7 @@ namespace NetDivert.Core
                     IdleMs = last == 0 ? long.MaxValue : now - last,
                     Connections = connCounts.TryGetValue(app, out int n) ? n : 0,
                     Rule = app.Rule.Clone(),
+                    Ruled = app.Ruled,
                 });
             }
 

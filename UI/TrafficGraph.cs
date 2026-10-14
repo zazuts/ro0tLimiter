@@ -16,6 +16,11 @@ namespace NetDivert.UI
         private static readonly Brush LabelBrush = Frozen(new SolidColorBrush(Color.FromRgb(0x8A, 0x93, 0xA3)));
         private static readonly Typeface Face = new("Segoe UI");
 
+        public TrafficGraph()
+        {
+            IsVisibleChanged += (_, _) => InvalidateVisual();
+        }
+
         private History? _down;
         private History? _up;
 

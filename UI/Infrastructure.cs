@@ -68,7 +68,8 @@ namespace NetDivert.UI
         public event Action? Changed;
 
         public RateUnit Unit { get; set; } = RateUnit.Auto;
-        public string Language { get; set; } = "pt-BR";
+        public string Language { get; set; } = "en-US";
+        public string Theme { get; set; } = "dark";
         public bool TrayHintShown { get; set; }
         public bool StartWithWindows { get; set; }
         public bool StartMinimized { get; set; }
@@ -79,6 +80,7 @@ namespace NetDivert.UI
         public List<string> Hidden { get; set; } = new();
         public List<string> Dismissed { get; set; } = new();
         public List<string> Pinned { get; set; } = new();
+        public List<string> AskedOnline { get; set; } = new();
         public string ColorConnected { get; set; } = "#1F6B4A";
         public string ColorPinned { get; set; } = "#5C4B1F";
         public string ColorMissing { get; set; } = "#6B3030";
@@ -107,6 +109,31 @@ namespace NetDivert.UI
                 // Corrupt settings fall back to defaults.
             }
             return new UiSettings();
+        }
+
+        public void CopyFrom(UiSettings other)
+        {
+            Unit = other.Unit;
+            Language = string.IsNullOrWhiteSpace(other.Language) ? Language : other.Language;
+            Theme = string.IsNullOrWhiteSpace(other.Theme) ? Theme : other.Theme;
+            TrayHintShown = other.TrayHintShown;
+            StartWithWindows = other.StartWithWindows;
+            StartMinimized = other.StartMinimized;
+            AlwaysOnTop = other.AlwaysOnTop;
+            ShowTrayTips = other.ShowTrayTips;
+            AppTab = other.AppTab;
+            Favorites = other.Favorites == null ? new List<string>() : new List<string>(other.Favorites);
+            Hidden = other.Hidden == null ? new List<string>() : new List<string>(other.Hidden);
+            Dismissed = other.Dismissed == null ? new List<string>() : new List<string>(other.Dismissed);
+            Pinned = other.Pinned == null ? new List<string>() : new List<string>(other.Pinned);
+            AskedOnline = other.AskedOnline == null ? new List<string>() : new List<string>(other.AskedOnline);
+            ColorConnected = other.ColorConnected;
+            ColorPinned = other.ColorPinned;
+            ColorMissing = other.ColorMissing;
+            ColorSpecial = other.ColorSpecial;
+            ColorSigned = other.ColorSigned;
+            ColorSystem = other.ColorSystem;
+            ColorWsl = other.ColorWsl;
         }
 
         public void Save()
@@ -187,6 +214,7 @@ namespace NetDivert.UI
 
     public static class IconCache
     {
+        private static readonly object Gate = new();
         private static readonly Dictionary<string, ImageSource?> Cache = new(StringComparer.OrdinalIgnoreCase);
         private static ImageSource? _default;
 
@@ -194,8 +222,12 @@ namespace NetDivert.UI
         {
             if (path == null)
                 return Default;
-            if (Cache.TryGetValue(path, out var img))
-                return img;
+            lock (Gate)
+            {
+                if (Cache.TryGetValue(path, out var cached))
+                    return cached;
+            }
+            ImageSource? img;
             try
             {
                 using var icon = System.Drawing.Icon.ExtractAssociatedIcon(path);
@@ -205,7 +237,8 @@ namespace NetDivert.UI
             {
                 img = Default;
             }
-            Cache[path] = img;
+            lock (Gate)
+                Cache[path] = img;
             return img;
         }
 

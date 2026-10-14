@@ -26,6 +26,57 @@ namespace NetDivert.Native
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool GetExitCodeProcess(IntPtr process, out uint exitCode);
 
+        public const uint PROCESS_TERMINATE = 0x0001;
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool TerminateProcess(IntPtr process, uint exitCode);
+
+        public static void TryEnableDebugPrivilege()
+        {
+            if (!OpenProcessToken(new IntPtr(-1), 0x20 | 0x8, out IntPtr token))
+                return;
+            try
+            {
+                if (!LookupPrivilegeValue(null, "SeDebugPrivilege", out Luid luid))
+                    return;
+                var priv = new TokenPrivileges
+                {
+                    Count = 1,
+                    Luid = luid,
+                    Attributes = 2,
+                };
+                AdjustTokenPrivileges(token, false, ref priv, 0, IntPtr.Zero, IntPtr.Zero);
+            }
+            finally
+            {
+                CloseHandle(token);
+            }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Luid
+        {
+            public uint Low;
+            public int High;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct TokenPrivileges
+        {
+            public uint Count;
+            public Luid Luid;
+            public uint Attributes;
+        }
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        private static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern bool LookupPrivilegeValue(string? system, string name, out Luid luid);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        private static extern bool AdjustTokenPrivileges(IntPtr token, bool disableAll, ref TokenPrivileges privileges, uint length, IntPtr previous, IntPtr returnLength);
+
         [DllImport("winmm.dll")]
         public static extern uint timeBeginPeriod(uint period);
 
