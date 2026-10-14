@@ -2,7 +2,7 @@
 ; WinDivert.dll and WinDivert64.sys are shipped inside the setup, with their license.
 
 #define MyAppName "ro0tLimiter"
-#define MyAppVersion "1.0.9"
+#define MyAppVersion "1.0.10"
 #define MyAppPublisher "Andre"
 #define MyAppExeName "ro0tLimiter.exe"
 
@@ -22,16 +22,17 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
+SetupIconFile=..\Assets\ro0tLimiter.ico
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 LicenseFile=..\third_party\WinDivert\LICENSE
 InfoBeforeFile=Before.rtf
 UninstallDisplayIcon={app}\{#MyAppExeName}
-VersionInfoVersion=1.0.9.0
+VersionInfoVersion=1.0.10.0
 VersionInfoCompany=Andre
 VersionInfoDescription=ro0tLimiter setup
 VersionInfoProductName=ro0tLimiter
-VersionInfoProductVersion=1.0.9.0
+VersionInfoProductVersion=1.0.10.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -47,7 +48,7 @@ Name: "{autodesktop}\ro0tLimiter"; Filename: "{app}\{#MyAppExeName}"; Tasks: des
 Name: "desktopicon"; Description: "Create a desktop icon"; GroupDescription: "Additional icons:"
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch ro0tLimiter"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch ro0tLimiter"; Flags: nowait postinstall skipifsilent runascurrentuser
 
 [UninstallRun]
 Filename: "{app}\{#MyAppExeName}"; Parameters: "--uninstall-service"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveService"

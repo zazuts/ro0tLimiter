@@ -28,8 +28,8 @@ namespace NetDivert
         public MainWindow()
         {
             InitializeComponent();
-            _icon = AppIcon.Create(System.Drawing.Color.FromArgb(0xE0, 0x4B, 0x4B));
-            Icon = AppIcon.ToImageSource(_icon);
+            _icon = AppIcon.Create(System.Drawing.Color.White, 32);
+            Icon = AppIcon.LogoSource();
 
             _vm = new MainViewModel();
             DataContext = _vm;
@@ -158,8 +158,7 @@ namespace NetDivert
                 _arrowTimer.Tick += (_, _) =>
                 {
                     _arrowPhase = !_arrowPhase;
-                    if (_tray != null)
-                        _tray.Icon = _arrowPhase ? _phaseUpRed ?? _tray.Icon : _phaseDownRed ?? _tray.Icon;
+                    PaintTrayIcon();
                 };
                 _arrowTimer.Start();
             }
@@ -178,23 +177,22 @@ namespace NetDivert
             var accent = _vm.IsRunning
                 ? System.Drawing.Color.FromArgb(0x2E, 0xC8, 0x6A)
                 : System.Drawing.Color.FromArgb(0xE0, 0x4B, 0x4B);
-            var down = System.Drawing.Color.FromArgb(0x7C, 0xF5, 0xB0);
-            var up = System.Drawing.Color.FromArgb(0xFF, 0xC0, 0x7A);
-            var red = System.Drawing.Color.FromArgb(0xFF, 0x3B, 0x3B);
-            DisposeArrowIcons();
             if (_vm.RedirectIsRunning)
             {
-                _phaseDownRed = AppIcon.Create(accent, downColor: red, upColor: up);
-                _phaseUpRed = AppIcon.Create(accent, downColor: down, upColor: red);
-                _tray.Icon = _arrowPhase ? _phaseUpRed : _phaseDownRed;
-                Icon = AppIcon.ToImageSource(_tray.Icon);
+                var pulse = _arrowPhase
+                    ? System.Drawing.Color.White
+                    : System.Drawing.Color.FromArgb(0xFF, 0x3B, 0x3B);
+                var next = AppIcon.Create(pulse, 32);
+                var prior = _phaseUpRed;
+                _phaseUpRed = next;
+                _tray.Icon = next;
+                prior?.Dispose();
                 return;
             }
-            var icon = AppIcon.Create(accent);
+            var icon = AppIcon.Create(accent, 32);
             var previous = _blinkIcon;
             _blinkIcon = icon;
             _tray.Icon = icon;
-            Icon = AppIcon.ToImageSource(icon);
             if (previous != null && !ReferenceEquals(previous, _icon))
                 previous.Dispose();
         }

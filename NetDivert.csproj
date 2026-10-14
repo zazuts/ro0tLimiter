@@ -14,7 +14,8 @@
     <RootNamespace>NetDivert</RootNamespace>
     <Product>ro0tLimiter</Product>
     <AssemblyTitle>ro0tLimiter</AssemblyTitle>
-    <Version>1.0.9</Version>
+    <Version>1.0.10</Version>
+    <ApplicationIcon>Assets\ro0tLimiter.ico</ApplicationIcon>
     <Copyright>Copyright (C) 2026 Andre</Copyright>
     <StartupObject>NetDivert.Program</StartupObject>
   </PropertyGroup>
@@ -26,6 +27,7 @@
   <ItemGroup>
     <Resource Include="Assets\donate.png" />
     <Resource Include="Assets\donate-qr.png" />
+    <Resource Include="Assets\ro0t.png" />
   </ItemGroup>
 
   <ItemGroup>

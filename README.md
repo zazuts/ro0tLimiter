@@ -16,7 +16,7 @@ O ícone da bandeja fica verde com o controle ativo e vermelho quando ele está 
 
 ## Instalação
 
-Baixe `ro0tLimiter-Setup.exe` na [página de releases](https://github.com/zazuts/ro0tLimiter/releases). O instalador está em inglês. Ele copia o programa, a biblioteca de captura e o driver, e baixa o runtime do .NET 8 quando falta.
+Cada versão publicada tem dois downloads na [página de releases](https://github.com/zazuts/ro0tLimiter/releases): `ro0tLimiter-Setup-<versão>.exe` (instalador) e `ro0tLimiter-<versão>-win-x64.zip` (pasta pronta, sem instalador). O instalador está em inglês. Ele copia o programa, a biblioteca de captura e o driver, e baixa o runtime do .NET 8 quando falta. As versões anteriores continuam na mesma página.
 
 ## O que o programa faz
 
@@ -75,7 +75,7 @@ The tray icon is green while filtering is running and red when it is stopped.
 
 ## Install
 
-Download `ro0tLimiter-Setup.exe` from the [releases page](https://github.com/zazuts/ro0tLimiter/releases). The setup is in English. It copies the program, the capture library and the driver, and downloads the .NET 8 runtime when needed.
+Each published version has two downloads on the [releases page](https://github.com/zazuts/ro0tLimiter/releases): `ro0tLimiter-Setup-<version>.exe` (setup) and `ro0tLimiter-<version>-win-x64.zip` (a ready folder, without the setup). The setup is in English. It copies the program, the capture library and the driver, and downloads the .NET 8 runtime when needed. Older versions stay on the same page.
 
 ## License
 
